@@ -1,11 +1,7 @@
 """
 
 """
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.spatial.distance
-from scipy.interpolate import RectBivariateSpline
-import matplotlib as mpl
+import sys
 
 from create_map import Map
 from agents import Agent
@@ -20,11 +16,13 @@ from saving import *
 
 
 class Model():
-    def __init__(self, folder, params_const, params_sensitivity, params_scenarios, **kwargs):
+    def __init__(self, folder, seed, params_const, params_sensitivity, params_scenarios, **kwargs):
         """
 
         """
-        self.seed = params_const["seed"]          # Seed
+        self.seed = seed  # Seed
+        np.random.seed(self.seed)
+
         self.n_agents_arrival = params_const["n_agents_arrival"]  # nr of agents at arrival
         self.p_arrival = params_const["p_arrival"]  # population at arrival
         self.time_end = params_const["time_end"]  # end time of the simulation
@@ -64,9 +62,7 @@ class Model():
         self.map = Map(self)
         self.map.check_drought(self.time_arrival)
 
-        self.folder = "" if "folder" not in kwargs.keys() else kwargs["folder"]
-        self.seed = np.random.randint(100) if "seed" not in kwargs.keys() else kwargs["seed"]
-        np.random.seed(self.seed)
+        self.folder = folder  # "" if "folder" not in kwargs.keys() else kwargs["folder"]
         self.time_range = np.arange(self.time_arrival, self.time_end+1)
 
         self.schedule = []
@@ -239,8 +235,47 @@ class Model():
         return penalties
 
 
+from time import time
+from pathlib import Path
+import importlib
+import shutil
 if __name__=="__main__":
-    from plot_consts import *
-    from params_std import params_const, params_sensitivity, params_scenario
-    m = Model("", params_const, params_sensitivity, params_scenario)
+    if len(sys.argv) < 4:
+        print("Provide 3 arguments: python main.py default full 1")
+
+    RUNSTART = time()
+
+    sa_file = sys.argv[1]
+    sa_mod = importlib.import_module("params.sa."+sa_file)
+    print("sa.params_sensitivity: ", sa_mod.params_sensitivity)
+
+    scenario_file = sys.argv[2]
+    scenario_mod = importlib.import_module("params.scenarios." + scenario_file)
+    print("scenarios.params_sensitivity: ", scenario_mod.params_scenario)
+
+    seed = sys.argv[3]
+
+    const_file = "default_consts"
+    consts_mod = importlib.import_module("params.consts."+const_file)
+    print("const file", const_file)
+
+    folder = "data/{}_{}_seed{}/".format(sa_file, scenario_file, str(seed))  #, "_"+const_file if not const_file=="default")
+
+
+
+
+    # === Save files ===
+    # Save the current state of the implementation to the Subfolder
+    Path(folder).mkdir(parents=True, exist_ok=True)
+    Path(folder + "/used_files/").mkdir(parents=True, exist_ok=True)
+    for file in ["main.py", "create_map.py", "agents.py"]:
+        shutil.copy(file, folder + "/used_files/")
+    for file in ["consts/"+const_file, "sa/"+sa_file, "scenarios/"+scenario_file]:
+        shutil.copy("params/"+file+".py", folder + "/used_files/")
+    print("Working in ", folder, "; Python scripts and parameter files have been copied into subfolder used_files")
+
+    m = Model(folder, int(seed), consts_mod.params_const, sa_mod.params_sensitivity, scenario_mod.params_scenario)
     m.run()
+
+    RUNEND = time()
+    print("Run time was: {} min".format((RUNEND-RUNSTART)/60))

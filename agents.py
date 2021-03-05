@@ -251,6 +251,9 @@ class Agent:
         p_tot : array of floats between 0 and 1
             the weighted sum of all penalty(-ies) for the corresponding cells
         """
+        if self.m.gamma == 0:
+            # Do not need to calculate the penalties, because they are not taken into account
+            return 0, [0, 0, 0, 0, 0]
 
         # Boolean matrix of size len(inds_map) and len(triangle_inds).
         # c_ij = True if the cell with index i (in inds_map) is in r_t/f distance of cell j in triangle_inds
@@ -399,9 +402,11 @@ class Agent:
         past_dependent_satisfaction = 0.5 * (self.past_satisfaction + self.satisfaction)
         self.population_change()
 
-        # # Check if household splits
-        # if self.p > self.m.p_split_threshold:
-        #     self.split_household()
+        # Previous Solution :
+
+        # Check if household splits
+        if self.p > self.m.p_split_threshold:
+            self.split_household()
 
         # check if household is removed
         if self.p < self.m.p_remove_threshold:
