@@ -3,11 +3,12 @@
 export sa=$1
 
 onerun(){
-        python main.py $sa $1 $2  > ${sa}_$1_seed$2.txt
-        export folder=data/${sa}_${1}_seed${2}/
-        tar -zcvf  ${sa}_${1}_seed${2}.tar.gz ${folder}
-        mv ${sa}_${1}_seed${2}.tar.gz data/packed/
-        mv ${sa}_${1}_seed${2}.txt data/packed/
+        python main.py $sa $1 $2  > $sa_$1_seed$2.txt
+        export folder=data/${sa}_$1_seed$2/
+	echo $folder
+        tar -zcvf  ${sa}_$1_seed$2.tar.gz $folder
+        mv $sa_$1_seed$2.tar.gz data/packed/
+        mv $sa_$1_seed$2.txt data/packed/
         rm -r $folder
 }
 
@@ -22,8 +23,10 @@ scenario_run(){
   done
 }
 
-for scen in {homogeneous, constrained, full}; do\
-  scenario_run() $scen
-  wait
-  echo "A ./run_scenario.sh finished successfully"
+scenarios="homogeneous constrained full"
+for s in $scenarios; do\
+  	scenario_run $s
+  	wait
+  	echo "./run_scenario.sh finished successfully for "
+	echo $s
 done
