@@ -100,7 +100,7 @@ class Model():
 
     def run(self):
         self.init_agents()
-        self.observe(800)
+        self.observe(self.time_arrival)
         for t in np.arange(self.time_arrival+1, self.time_end+1):
             self.step(t)
             self.observe(t)
