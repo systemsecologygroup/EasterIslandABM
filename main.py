@@ -100,7 +100,7 @@ class Model():
 
     def run(self):
         self.init_agents()
-        self.observe(800)
+        self.observe(self.time_arrival)
         for t in np.arange(self.time_arrival+1, self.time_end+1):
             self.step(t)
             self.observe(t)
@@ -240,6 +240,7 @@ from pathlib import Path
 import importlib
 import shutil
 if __name__=="__main__":
+    print("RUN: ", sys.argv)
     if len(sys.argv) < 4:
         print("Provide 3 arguments: python main.py default full 1")
 
