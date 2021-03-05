@@ -1,0 +1,5 @@
+Map/
+data/
+plot_functions/
+__pycache__/
+params/sa/*/__pycache__

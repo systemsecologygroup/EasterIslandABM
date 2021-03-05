@@ -110,7 +110,7 @@ class Agent:
 
     def remove_unnecessary_gardens(self):
         """
-        leave an amount of gardens if the household does not require them anymore
+        remove an number of gardens if the household does not require them anymore
             e.g. because the population number decreased
 
         as long as remove first the poorly suited, then well-suited
@@ -334,7 +334,7 @@ class Agent:
         self.m.map.pop_cell[self.cell] -= self.p
         for garden in self.occupied_gardens_inds_map:
             self.m.map.occupied_gardens[garden] -= 1
-        self.occupied_gardens = np.array([]).astype(int)
+        self.occupied_gardens_inds_map = np.array([]).astype(int)
         self.f_pi_occ_gardens = np.array([])
 
         # === Penalty Evaluation ===
@@ -498,8 +498,9 @@ class Agent:
                 while True:
                     if self.farming_fill == 1:
                         break
-                    # Cells within circle_f_inds, that are have not all its gardens (if it even has any) entirely occupied yet.
-                    open_spaces = np.where(gardens[circle_f_inds] > self.m.map.occupied_gardens[circle_f_inds])
+                    # Cells within circle_f_inds, that are arable and have not yet all of its gardens occupied.
+                    open_spaces = np.where((gardens[circle_f_inds] > 0) * (gardens[circle_f_inds] > self.m.map.occupied_gardens[circle_f_inds]))
+
                     # indices of the cells
                     potential_cells = circle_f_inds[open_spaces]
                     if len(potential_cells) == 0:

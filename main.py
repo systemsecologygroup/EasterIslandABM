@@ -240,6 +240,7 @@ from pathlib import Path
 import importlib
 import shutil
 if __name__=="__main__":
+    print("RUN: ", sys.argv)
     if len(sys.argv) < 4:
         print("Provide 3 arguments: python main.py default full 1")
 

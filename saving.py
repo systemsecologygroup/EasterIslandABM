@@ -4,33 +4,6 @@ import pandas as pd
 
 
 def store_agg_values(model):
-    # n_agents = len(config.agents)
-    # satisfactions = np.array([ag.satisfaction for ag in model.schedule])
-    # tree_fills = [ag.tree_fill for ag in model.schedule]
-    # farm_fills = [ag.farming_fill for ag in model.schedule]
-    # #penalties = [ag.penalty if ag.penalty < 100 else 1 for ag in model.schedule]
-    # fractions_poor_vs_well = [np.sum(ag.f_pi_occ_gardens == model.f_pi_poor) / max(len(ag.f_pi_occ_gardens), 1) for ag in model.schedule]
-    # agg_values = {
-    #     "time": time,
-    #     "n_agents": n_agents,
-    #     "n_excess_deaths": model.excess_deaths,
-    #     "n_excess_births": model.excess_births,
-    #     "mean_s": np.mean(satisfactions) if n_agents > 0 else 0,
-    #     "std_s": np.std(satisfactions) if n_agents > 0 else 0,
-    #     "nr_tree_unfilled": np.sum(tree_fills < 1) if n_agents > 0 else 0,
-    #     "nr_farm_unfilled": np.sum(farm_fills < 1) if n_agents > 0 else 0,
-    #     "mean_tree_fill": np.mean(tree_fills) if n_agents > 0 else 0,
-    #     "mean_farm_fill": np.mean(farm_fills) if n_agents > 0 else 0,
-    #     # "mean_penalties": np.mean(penalties) if n_agents > 0 else 0,
-    #     # "std_penalties": np.std(penalties) if n_agents > 0 else 0,
-    #     "fractions_poor_vs_well": np.mean(fractions_poor_vs_well) if n_agents > 0 else 0,
-    #     "resource_motivated_moves": model.resource_motivated_moves,
-    # }
-    # model.excess_deaths = 0
-    # model.excess_births = 0
-    # model.resource_motivated_moves = 0
-    # model.agg_values = model.agg_values.append(agg_values, ignore_index=True)
-
     model.n_agents_arr.append(len(model.schedule))
     model.resource_motivated_moves_arr.append(model.resource_motivated_moves)
     model.excess_deaths_arr.append(model.excess_deaths)
