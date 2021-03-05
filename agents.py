@@ -253,7 +253,7 @@ class Agent:
         """
         if self.m.gamma == 0:
             # Do not need to calculate the penalties, because they are not taken into account
-            return 0, [0, 0, 0, 0, 0]
+            return np.zeros_like(triangle_inds), [np.zeros_like(triangle_inds) for _ in range(5)]
 
         # Boolean matrix of size len(inds_map) and len(triangle_inds).
         # c_ij = True if the cell with index i (in inds_map) is in r_t/f distance of cell j in triangle_inds
