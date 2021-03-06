@@ -256,11 +256,11 @@ if __name__=="__main__":
 
     seed = sys.argv[3]
 
-    const_file = "default_consts"
+    const_file = "default_consts"  # "default_consts"  # "single_agent_consts"
     consts_mod = importlib.import_module("params.consts."+const_file)
     print("const file", const_file)
 
-    folder = "data/{}_{}_seed{}/".format(sa_file, scenario_file, str(seed))  #, "_"+const_file if not const_file=="default")
+    folder = "data/{}_{}_seed{}/".format(sa_file, scenario_file, str(seed))
 
 
 

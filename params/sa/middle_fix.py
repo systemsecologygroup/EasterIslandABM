@@ -1,5 +1,6 @@
-n_fix = "low"
-f_req_pp = 6.79 if n_fix == "low" else 1.95  # TODO
+n_fix = "middle"
+f_req_pp = (6.79 + 1.95)/2
+
 # "low": 1/[(1.46 Tons/ha/year) * 0.1 (ha/gardens) * (2809 kcal/day / (Tons/year)  / (2785 kcal/day/person)]
 #       1/[1.46 * 0.1 * 2809 * 2785] * [tons * ha * kcal * year * day * person / (ha year gardens day year kcal)]
 #       1/[1.46 * 0.1 * 2809 * 2785] * [1/ (tons * ha * kcal * year * day * person / (ha year gardens day Tons kcal))]

@@ -3,3 +3,6 @@ data/
 plot_functions/
 __pycache__/
 params/sa/*/__pycache__
+params/consts/*/__pycache__
+params/scenarios/*/__pycache__
+dataSingleAgent
