@@ -402,12 +402,6 @@ class Agent:
         past_dependent_satisfaction = 0.5 * (self.past_satisfaction + self.satisfaction)
         self.population_change()
 
-        # Strategy: First split if household becomes too big, then move if unhappy:
-
-        # Check if household splits
-        if self.p > self.m.p_split_threshold:
-            self.split_household()
-
         # check if household is removed
         if self.p < self.m.p_remove_threshold:
             self.remove_agent()
@@ -416,17 +410,41 @@ class Agent:
             survived = True
             self.remove_unnecessary_gardens()
 
-        # === Move ===
-        if survived:
-            self.calc_resource_req()
-            if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
-                self.move(np.arange(len(self.m.map.inds_map)))
-                self.m.resource_motivated_moves += 1
-            else:
-                # could calculate penalty here.
-                pass
+        # Strategy: split unhappy, move if household too small to fit.:
 
-            # === Update tree preference ===
+        # ALTERNATIVE IMPLEMENTATION:
+        # So far:
+        #   - split if household gets very big,
+        #   - move if you are unhappy
+        # Alternative:
+        #   - split if unhappy, reduce to half the size (this is an adaptation)
+        #   - move if hoseuhold is too small to split (this is the final possibility!)
+
+        # if survived:
+        #     if past_dependent_satisfaction < self.m.s_equ:
+        #         if self.p > 2 * self.m.p_splitting_agent:
+        #             init_p = copy(self.p)
+        #             while True:  # self.2 * self.m.p_splitting_agent:
+        #                 self.split_household()
+        #                 if self.p < 0.5 * init_p:
+        #                     break
+        #         else:
+        #             self.move(np.arange(len(self.m.map.inds_map)))
+        #     self.update_t_pref()
+        #     self.calc_resource_req()
+
+        # Alternative 2:
+        #   - split with prob 1-s (this is an adaptation)
+        #   - move if hoseuhold is too small to split (this is the final possibility!)
+
+        if survived:
+            while np.random.random() < abs(1-past_dependent_satisfaction):
+                if self.p > 2 * self.m.p_splitting_agent:
+                    self.split_household()
+                else:
+                    self.move(np.arange(len(self.m.map.inds_map)))
+            #if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
+            #    self.move(np.arange(len(self.m.map.inds_map)))
             self.update_t_pref()
             self.calc_resource_req()
 
