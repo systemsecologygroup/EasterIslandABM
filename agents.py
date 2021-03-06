@@ -402,7 +402,7 @@ class Agent:
         past_dependent_satisfaction = 0.5 * (self.past_satisfaction + self.satisfaction)
         self.population_change()
 
-        # Previous Solution :
+        # Strategy: First split if household becomes too big, then move if unhappy:
 
         # Check if household splits
         if self.p > self.m.p_split_threshold:
@@ -430,40 +430,6 @@ class Agent:
             self.update_t_pref()
             self.calc_resource_req()
 
-
-        # ALTERNATIVE IMPLEMENTATION:
-        # So far:
-        #   - split if household gets very big,
-        #   - move if you are unhappy
-        # Alternative:
-        #   - split if unhappy, reduce to half the size (this is an adaptation)
-        #   - move if hoseuhold is too small to split (this is the final possibility!)
-
-        # if survived:
-        #     if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
-        #         if self.p > 2 * self.m.p_splitting_agent:
-        #             init_p = copy(self.p)
-        #             while self.p > 0.5 * init_p:  # self.2 * self.m.p_splitting_agent:
-        #                 self.split_household()
-        #         else:
-        #             self.move(np.arange(len(self.m.map.inds_map)))
-        #     self.update_t_pref()
-        #     self.calc_resource_req()
-
-        # Alternative 2:
-        #   - split with prob 1-s (this is an adaptation)
-        #   - move if hoseuhold is too small to split (this is the final possibility!)
-
-        # if survived:
-        #     if np.random.random() < 1-self.satisfaction:
-        #         if self.p > 2 * self.m.p_splitting_agent:
-        #             self.split_household()
-        #         else:
-        #             self.move(np.arange(len(self.m.map.inds_map)))
-        #     if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
-        #         self.move(np.arange(len(self.m.map.inds_map)))
-        #     self.update_t_pref()
-        #     self.calc_resource_req()
         return
 
 
