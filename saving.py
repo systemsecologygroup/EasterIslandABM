@@ -54,7 +54,7 @@ def store_const_map(model):
                 "y": ("ind_points", model.map.triobject.y),
                 "x": ("inds_points", model.map.triobject.x),
                 "midpoints": (("inds_all", "space"), model.map.midpoints),
-                "coast": ("inds_map", coast[model.map.inds_map]),
+                "coast": ("inds_map", coast[model.map.land_cells]),
                 "sl": ("inds_map", model.map.sl_map),
                 "el": ("inds_map", model.map.el_map),
                 "dist_to_water": ("inds_map", model.map.dist_water_map),
@@ -65,7 +65,7 @@ def store_const_map(model):
             coords={
                 "space": ["x", "y"],
                 "triangle_corners": [0, 1, 2],
-                "inds_map": model.map.inds_map,
+                "inds_map": model.map.land_cells,
                 "inds_all": np.arange(len(model.map.triobject.mask)),
                 "inds_points": np.arange(len(model.map.triobject.x))
             },
@@ -85,7 +85,7 @@ def store_dynamic_map(model, time):
 
     model.trees[n, :] = model.map.trees_map
     model.gardens[n, :] = model.map.occupied_gardens
-    model.population[n, :] = model.map.pop_cell
+    model.population[n, :] = model.map.population_size
     model.clearance[n, :] = model.map.tree_clearance
     model.lakes[n, model.map.water_cells_map] = True
     return
@@ -131,7 +131,7 @@ def save_all(model):
         },
         {
             "time": model.time_range,
-            "cell_ind": model.map.inds_map
+            "cell_ind": model.map.land_cells
         }
     )
     dynamic_env.to_netcdf(path=model.folder + "dynamic_env.ncdf")

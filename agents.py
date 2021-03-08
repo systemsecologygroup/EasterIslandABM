@@ -1,15 +1,67 @@
+'''
+    File name: agents.py
+    Author: Peter Steiglechner
+    Date created: 01 December 2020
+    Date last modified: 07 March 2021
+    Python Version: 3.8
+'''
+
 import numpy as np
-# import scipy.stats
 from copy import copy
 
 
 class Agent:
     """
-    Household agents
+    Household agents located on the island with a specific population, resource related attributes and an update procedure for each year.
+
+    The (independent) state variables of the agent entity are:
+    - Location (x, y, cell)
+    - Populatoin size p
+    - preference t_pref of resources tree over farming produce
+    - farming yield from occupied gardens and their farming productivity
+    - cut trees
+    - satisfaction with resource harvest.
+
+    The processes are:
+    - calc_resource_req : calculate resource requirement for current year from constant tree/farming requirement per person farming/tree_req_pp, tree preference t_pref and population size p
+    - update_t_pref :  update the tree preference according to the level of deforestation in the local surrounding (with radius r_t).
+    - split_household : split household to form a new agent with population p_splitting_agent in a new location
+    - remove_agent : dissolve the agent, clear its land and remove all its individuals
+    - remove_unnecessary_gardens : if there is overproduce in farming, leave gardens (preferably poorly suited).
+    - population_change :  population growth/decline via a stochastic process for each individual to reproduce or die given the growth rate mu_mean from the past-dependent satisfaction index s
+    - mu_mean : return the mean growth rate given an agent's past-dependent satisfaction
+    - calc_penalty : calculate the penalty(ies) for cell(s) triangle_inds on the island based on weights on the specific evaluation criteria, alphas,and the current tree preference
+    - move : relocate the settlement according to stochastic process according to the total penalties of cells, within_inds
+    - occupy_gardens : occupy more gardens (preferably, well suited and with fewest trees needed to be cleared) in radius r_F until requirement f_req fulfilled or no further unoccupied gardens available in r_F.
+    - harvest_trees : cut trees in radius r_T until requirement fulfilled or no further trees available.
+    - update : update procedure of harvesting, population adaptation and potential moving for the agent in each time step
+
     """
 
     def __init__(self, m, x, y, p):
         """
+        Initialisation of the first settlers.
+
+        Agents of a model $m$ are initialised at a specific location $x$, $y$ on the model's discretised map of Easter Island and a poplation $p$
+        Other traits are model constants or derived from these constants and the location.
+
+        In detail, the parameters are:
+        \begin{tabular}{c|c|c|c}
+            Variable & Description & Range & Units \\
+            index & unique index/name & {0, 1, ...} & \\
+            x, y & location of the agent on Easter Island & all set of values lying on cells of the EI map  & km \\
+            cell & the index of the cell corresponding to (x,y) on the map & {0, 1, ...} \\
+            p & population size & {p\_remove\_threshold, ..., p\_split\_threshold} & \\
+            t_pref & tree preference & [t\_pref\_min, t\_pref\_max] (in [0,1]) & \\
+            f_req & agent's required amount of farming produce (gardens times their farming_productivity) & [0,[ & gardens of 1000m2 with farming productivity 1 \\
+            t_req & agent's required amount of trees per year & {0, ...} & trees \\
+            tree_fill & fraction of tree requirement t_req, filled each year & [0,1] & \\
+            farming_fill & fraction of farming requirement f_req filled by available gardens & [0,1] & \\
+            satisfaction & Satisfaction with the resource situation in the current year. Minimum of tree_fill and farming_fill according to Liebig's law& [0,1] & \\
+            past_satisfaction & past-dependent satisfaction with inertia. Average of this and past year's satisfaction & [0,1] & \\
+            occupied_gardens_inds_map & indices of the cells in which a garden has been set up & list of values in self.m.map.inds_map & \\
+            f_pi_occ_gardens & farming productivity of the cells of each garden in occupied_gardens_inds_map & list of values [0,1] & pp/garden \\
+        \end{tabular}
 
         Parameters
         ----------
@@ -22,28 +74,29 @@ class Agent:
         p: int
             initial population of the household
         """
-        self.m = m
-        self.index = self.m.max_agent_index
-        # already incremented in self.m.init_agents: self.m.max_agent_index += 1
-        self.x = x
-        self.y = y
+        self.m = m  # Model
+        self.index = self.m.max_agent_index  # running index giving each agent an unique index
+        # incremented in the model: self.m.max_agent_index += 1
+        self.x = x  # location
+        self.y = y  # location
         self.cell = -1  # of triangles on the map
         self.cell_all = -1  # of all triangles including ocean triangles
-        self.p = p
-        self.t_pref = self.m.t_pref_max
-        self.f_req = 0
-        self.t_req = 0
-        self.tree_fill = 1
-        self.farming_fill = 1
-        self.satisfaction = 1
-        self.past_satisfaction = 1
-        self.occupied_gardens_inds_map = np.array([]).astype(np.int16)
-        self.f_pi_occ_gardens = np.array([]).astype(np.float)
-        # self.current_penalty
+        self.p = p  # population size
+        self.t_pref = self.m.t_pref_max  # tree preference
+        self.update_t_pref()
+        self.f_req = 0  # agent's required amount of (gardens * farming_productivity)
+        self.t_req = 0  # agent's required amount of trees per year
+        self.tree_fill = 1  # fraction of tree requirement t_req filled each year
+        self.farming_fill = 1  # fraction of farming requirement f_req filled by available gardens & [0,1] & \\
+        self.satisfaction = 1  # satisfaction with harvest success index with
+        self.past_satisfaction = 1  # satisfaction of previous time step
+        self.occupied_gardens_inds_map = np.array([]).astype(np.int16)  # Indices of the cell (in self.m.map.inds_map) of each garden occupied
+        self.f_pi_occ_gardens = np.array([]).astype(np.float)  # farming productivity index of each garden occupied
+        return
 
     def calc_resource_req(self):
         """
-        Calculate the farming/tree requirement
+        calculate resource requirement for current year from constant tree/farming requirement per person farming/tree_req_pp, tree preference t_pref and population size p
 
         For Trees:
         $$ T_{\, \rm Req}^{\,\rm i}(t) =
@@ -52,15 +105,13 @@ class Agent:
         $$ F_{\, \rm Req}^{\,\rm i}(t) =
             (1-T_{\, \rm Pref}^{\, \rm i}(t)) \cdot F_{\, \rm Req}^{\,pP} \cdot p^{\,\rm i}(t) $$
         """
-
         self.f_req = (self.p * self.m.f_req_pp * (1 - self.t_pref))
-        # TODO not needed self.f99 = (1 - self.T_Pref_i) * config.F_Req_pP * self.pop * config.S_equ
         self.t_req = (self.p * self.m.t_req_pp * self.t_pref)
         return
 
     def update_t_pref(self):
         """
-        Update the tree preference according to local surrounding.
+        update the tree preference according to the level of deforestation in the local surrounding (with radius r_t).
 
         Assume linear relation between agent $i$'s $T_{\rm Pref}^{\,\rm i}(t)$ and the level of deforestation
         $\epsilon$ within $r_{\rm T}$ distance:
@@ -72,7 +123,6 @@ class Agent:
             \epsilon \cdot \left( T_{\rm Pref}^{\, \rm max} - T_{\rm Pref}^{\, \rm min}\right) \, ,$$
         where $T_{\rm Pref}^{\, \rm min/max}$ are lower and upper bounds to ensure that, on the one hand,
             an agent always requires some trees (e.g.\ for tools) and, on the other hand, some farming produce.
-
         """
         # level of deforestation around the agent
         epsilon = self.m.map.trees_map[self.m.map.circ_inds_trees[self.cell]].sum() / \
@@ -84,11 +134,10 @@ class Agent:
 
     def split_household(self):
         """
-        split household and move new household
-
-        If $p^{\, \rm i}(t)$ exceeds $p_{max}=36$ individuals , $p_{\rm split} = 12$ individuals split off
-        to form a new agent in a new location.
+        split household to form a new agent with population p_splitting_agent in a new location
         """
+        # Initiated if $p^{\, \rm i}(t)$ exceeds $p_{max}$ individuals ,
+
         # reduce population by the splitting amount
         self.p -= int(self.m.p_splitting_agent)
         # resource requirements and t_pref are updated in the update function
@@ -104,16 +153,22 @@ class Agent:
         child.f_pi_occ_gardens = np.array([])
 
         # Move the child agent and append to list of agents
-        child.move(np.arange(len(self.m.map.inds_map)))
+        child.move(np.arange(len(self.m.map.land_cells)))
         self.m.schedule.append(child)
         return
 
     def remove_unnecessary_gardens(self):
         """
-        remove an number of gardens if the household does not require them anymore
-            e.g. because the population number decreased
+        if there is overproduce in farming, leave gardens (preferably poorly suited).
+        population growth/decline via a stochastic process for each individual to reproduce or die given the growth rate mu_mean from the past-dependent satisfaction index s
+        calculate the penalty(ies) for cell(s) triangle_inds on the island based on weights on the specific evaluation criteria, alphas,and the current tree preference
+        relocate the settlement according to stochastic process according to the total penalties of cells, within_inds
+        occupy more gardens (preferably, well suited and with fewest trees needed to be cleared) in radius r_F until requirement f_req fulfilled or no further unoccupied gardens available in r_F.
+        cut trees in radius r_T until requirement fulfilled or no further trees available.
+        update procedure of harvesting, population adaptation and potential moving for the agent in each time step
 
-        as long as remove first the poorly suited, then well-suited
+        Initiated after population_change. A smaller population requires less farming produce and keeping the gardens is unnecessary for the agent for the moment.
+        As long as possible remove first the poorly suited, then well-suited gardens.
         """
         f_overproduce = np.sum(self.f_pi_occ_gardens) - self.f_req
         # loop through gardens, ordered by their farming productivity from poor to well-suited
@@ -136,12 +191,10 @@ class Agent:
 
     def remove_agent(self):
         """
-        remove agent if it becomes too small
-
-        If $p^{\rm \, i}(t) < p_{\rm min} = 6$ individuals, the whole household dies and is removed.
+        dissolve the agent, clear its land and remove all its individuals
         """
         # remove population from the cell
-        self.m.map.pop_cell[self.cell] -= self.p
+        self.m.map.population_size[self.cell] -= self.p
         # remove all gardens
         for garden in self.occupied_gardens_inds_map:
             self.m.map.occupied_gardens[garden] -= 1
@@ -155,21 +208,20 @@ class Agent:
 
     def population_change(self):
         """
-        Population growth/decline according to happiness.
+        population growth/decline via a stochastic process for each individual to reproduce or die given the growth rate mu_mean from the past-dependent satisfaction index s
 
-        The mean growth rate of the household $i$, $\mu_{\rm m}^{\,\rm i}$, as a function of its past-dependent
+        The mean growth rate of the household $i$ is $\mu_{\rm m}^{\,\rm i}$, as a function of its past-dependent
         satisfaction $S^{\,\rm i}$.
         The growth/decline process is stochastic with each individual of the household having a probability
         to die/reproduce of $|\mu_{\rm m}^{\,\rm i}(t)-1|$ in the corresponding regime in each time step.
         Thus, on average a household grows with rate $\mu_{\rm m}^{\,\rm i}(t)$.
         The characteristic value for a constant population size, $S_{\rm equ}$, is adopted from a demographic model
         in \citet{Puleston2017}.
-
         """
         # past-dependent satisfaction as average of current and last satisfaction value.
         past_dependent_satisfaction = 0.5 * (self.satisfaction + self.past_satisfaction)
         # mean growth rate
-        mu_mean = self.m.mu_mean(past_dependent_satisfaction)
+        mu_mean = self.mu_mean(past_dependent_satisfaction)
 
         # random values for each individual of the population
         rands = np.random.random(size=self.p)
@@ -182,20 +234,46 @@ class Agent:
         self.m.excess_births += excess_births
 
         # adjust population in cell
-        self.m.map.pop_cell[self.cell] += excess_births - excess_deaths
+        self.m.map.population_size[self.cell] += excess_births - excess_deaths
 
         return
+
+    def mu_mean(self, s):
+        """
+        Return the mean growth rate given an agent's past-dependent satisfaction
+
+        Parameters
+        ----------
+        s : float
+            past dependent satisfaction of an agent
+        """
+        if s >= self.m.s_equ:
+            m_grow = (self.m.max_p_growth_rate - 1) / (1 - self.m.s_equ)
+            return m_grow * (s - self.m.s_equ) + 1
+        else:
+            m_decl = 1 / self.m.s_equ
+            return m_decl * s
 
 
     def calc_penalty(self, triangle_inds):
         """
-        calculate the total penalty of a number of cells for the agent.
+        Calculate the penalty(ies) for cell(s) triangle_inds on the island based on weights on the specific evaluation criteria, alphas,and the current tree preference
 
-        Assumption:
+        Idea:
+            We make the following assumption.
             Agents prefer a certain geography (low altitude and low slope), proximity to freshwater lakes
-            (weighted by the area), low population density, as well as large numbers of trees within $r_T$ distance
+            (weighted by the area), low population density, as well as large numbers of trees within $r_T distance
             and high availability of arable (in particular, well-suited) potential gardens within $r_F$ distance.
-        Calculation:
+            The penalties, $P_{\rm cat}(c)$, depend logistically on the correlated, underlying geographic condition ranging from $0$ (very favourable condition) to $1$ (very unfavourable).
+            The penalty is set to $\infty$ to inhibit a relocation to particular cells $c$, if the agent can not fill either its current tree or farming requirement for at least the upcoming year if it would move to this cell.
+            All categorical penalties for a cell are then summed up using weights $\alpha_{\rm cat}$ (with $\sum_{\rm cat} \,  \alpha_{\rm cat}=1$) to obtain a total evaluation index of cell $c$'s suitability as a new household location.
+            Given the total penalty for each cell $c$, agent $i$ then moves to the cell $c$ with probability
+            $$ P_{\rm tot}(c) =  \sum_{\rm cat} \, \alpha_{\rm cat}^{\rm \, i}\cdot P_{\rm cat} \right) $$
+            The relative weight for farming, $\alpha_{\rm farming}$, and tree, $\alpha_{\rm tree}$, in equation \eqref{eq:p_Moving} differs between agents as we additionally scale them with the agent's current tree preference (and then re-normalise).
+            The other weights (for geography, freshwater proximity, and population density) remain the same for all agents.
+
+        More detailed calculation:
+            The total penalty for a cell is calculated as
             $$ P_{\rm tot}^{\rm i}(c) = \sum_{\rm cat} \, \alpha_{\rm cat}^{\rm \, i} \cdot P_{\rm cat} $$
             where $cat$ represents the categories used for the elevation of a cell:
                 "w" for area wieghted proximity for freshwater, "pd" for population density, "tr" for tree availability,
@@ -234,11 +312,11 @@ class Agent:
                         - and $x_99$, the value at which the penalty is $P_{cat}|_{x=x99} = 0.99$
                     Then $k_x = \frac{1}{0.5*(x99-x01)} \log(0.99/0.01)$
                 - $x_{0.5} = 0.5\cdot (x01 + x99)$, the value of x at which the penalty is $0.5$
-
-        When an agent is prompted to move, the total penalty determines the probabilit of moving to a cell:
-        $$ p_{\rm m}^{\,\rm i}(c) =\frac{1}{\nu} \cdot \exp \left( - \gamma \cdot  P_{\rm tot}(c)$ \right) $$
-        where $\gamma$ is the factor determining how much the agent cares about the evaluation criteria
-        and $\nu$ is a normalisation.
+        Used for moving:
+            When an agent is prompted to move, the total penalty determines the probability of moving to a cell:
+            $$ p_{\rm m}^{\,\rm i}(c) =\frac{1}{\nu} \cdot \exp \left( - \gamma \cdot  P_{\rm tot}(c)$ \right) $$
+            where $\gamma$ is the factor determining how much the agent cares about the evaluation criteria
+            and $\nu$ is a normalisation.
 
 
         Parameters
@@ -271,7 +349,7 @@ class Agent:
 
         # === Pop Density Penalty ===
         # Population density = sum of population in each cell in r_F / (nr of cells in r_F distance * cell area)
-        pd = np.dot(self.m.map.pop_cell, circ_inds_farming_arr) / \
+        pd = np.dot(self.m.map.population_size, circ_inds_farming_arr) / \
              (np.sum(circ_inds_farming_arr, axis=0) * self.m.map.triangle_area_m2 * 1e-6)
         p_pd = self.m.P_cat(pd, "pd")
 
@@ -311,7 +389,16 @@ class Agent:
 
     def move(self, within_inds):
         """
-        move to a new location (in the triangles of within_inds) , after being prompted to do so.
+        relocate the settlement according to stochastic process according to the total penalties of cells, within_inds
+
+        Idea:
+            In our model, we allow agents to relocate their settlement on the island, when they split off from an existing agent or when they are sufficiently unsatisfied from the resource harvest, in particular, if both $S^{\,\rm i}(t) < S_{\rm equ}$ and current $s_{\rm curr}^{\,\rm i}(t) < S_{\rm equ}$.
+            When prompted to move, the agent decides on a new location by evaluating all cells on the island using several preferences and then assigning probabilities, accordingly.
+            This probabilistic approach accounts for the fact that human decision making is not simply a rational optimisation to find the best available location, but is e.g.\ limited by uncertainty and lack of knowledge or is based on heuristics rather than computation.
+            We assume that agents prefer a certain geography (low altitude and low slope), proximity to freshwater lakes, low population density, as well as large numbers of trees and high availability of arable (in particular, well-suited) potential gardens in the local surrounding.
+            Note that these preferences, are not related to the agent survival or its resource harvest.
+            For each of these categories (${\rm cat}$) the agent defines a categorical penalty, $P_{\rm cat}(c)$, and evaluates all cells accordingly.
+            The more unfavourable the conditions are in a cell, the higher the cell's penalties.
 
         Steps:
             - Clear your old space: remove gardens and decrease population of cell
@@ -327,11 +414,10 @@ class Agent:
         within_inds : array of ints
             inidices of the triangles on the map to which the agent can move
 
-
         """
 
         # === Clear your old space ===
-        self.m.map.pop_cell[self.cell] -= self.p
+        self.m.map.population_size[self.cell] -= self.p
         for garden in self.occupied_gardens_inds_map:
             self.m.map.occupied_gardens[garden] -= 1
         self.occupied_gardens_inds_map = np.array([]).astype(int)
@@ -351,10 +437,10 @@ class Agent:
         else:
             # Choose new cell randomly
             self.cell = np.random.choice(within_inds)
-        self.cell_all = self.m.map.inds_map[self.cell]
+        self.cell_all = self.m.map.land_cells[self.cell]
 
         # Increase population in the cell.
-        self.m.map.pop_cell[self.cell] += self.p
+        self.m.map.population_size[self.cell] += self.p
 
         # Find settlement location in the triangle:
         # Get corner points of the agent's chosen triangle
@@ -372,86 +458,44 @@ class Agent:
 
         return
 
-    def update(self):
-        """
-        Update an agent:
-            - Determine Resource requirements (trees and farming)
-            - Try occupying more gardens until satisfied
-            - Try cutting trees until satisfied
-            - Determine new satisfaction index
-            - population growth, split or remove
-            - potentially move location
-            - update tree preference
-        """
-
-        # === Determine Resource requirements (trees and farming) ===
-        self.calc_resource_req()
-
-        # === Try occupying more gardens until satisfied ==
-        self.occupy_gardens()
-
-        # === Tree Harvest ===
-
-        self.tree_harvest()
-
-        # === Population Change ===
-
-        self.past_satisfaction = copy(self.satisfaction)
-        self.satisfaction = np.min([self.tree_fill, self.farming_fill])
-
-        past_dependent_satisfaction = 0.5 * (self.past_satisfaction + self.satisfaction)
-        self.population_change()
-
-        # Strategy: First split if household becomes too big, then move if unhappy:
-
-        # Check if household splits
-        if self.p > self.m.p_split_threshold:
-            self.split_household()
-
-        # check if household is removed
-        if self.p < self.m.p_remove_threshold:
-            self.remove_agent()
-            survived = False
-        else:
-            survived = True
-            self.remove_unnecessary_gardens()
-
-        # === Move ===
-        if survived:
-            self.calc_resource_req()
-            if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
-                self.move(np.arange(len(self.m.map.inds_map)))
-                self.m.resource_motivated_moves += 1
-            else:
-                # could calculate penalty here.
-                pass
-
-            # === Update tree preference ===
-            self.update_t_pref()
-            self.calc_resource_req()
-
-        return
-
 
     def occupy_gardens(self):
         """
-        If required, occupy (if available) more gardens in r_F distance
+        occupy more gardens (preferably, well suited and with fewest trees needed to be cleared) in radius r_F until requirement f_req fulfilled or no further unoccupied gardens available in r_F.
 
+        Idea:
+            Agents occupy gardens of each 1000 m2 in arable cells
+            In each year all occupied gardens have a constant yield, given by the farming productivity index according to the classification of the corresponding cell into well or poorly suited for sweet potato cultivation, f_pi_occ_gardens
+            I.e. $$ F^{\,\rm i}(t) = \sum_{\, \rm g\,  \in  \, {\rm Gardens}^{\,\rm i}(t)}  \ F_{\, \rm P}(c_{\, \rm g}) $$
+            where ${\rm Gardens}^{\,\rm i}(t)$ are all $1000\, {\rm m^2}$ gardens farmed by the agent at time step $t$ in the corresponding cells $c_{\rm \, g}$.
+            If more farming produce is required, $F^{\,i}(t) \leq F_{\rm Req}^{\,\rm i}(t)$, the agent tries to occupy more prefereably well-suited gardens within $r_F$
+            Such potential garden areas might, however, still be forested.
+            Then, agents use slash-and-burn to clear the space and occupy an area of $A_{\rm \, garden} = 1000\, {\rm m^2}$.
+            Since we assume that trees are evenly spread within a cell, the fraction of removed trees is equivalent to the fraction of cleared area in this cell.
+            $$ A_\text{\, free}(c, t)\, [{\rm m^2}] = A_{\rm \, c} \cdot \frac{T(c, t_{0}) - T(c, t)}{T(c, t_{0})}$$
+            Some of that cleared space might already be occupied with existing gardens, $n_{\rm \, occ}(c,t)$.
+            $$ A_\text{occ}(c, t)\, [{\rm m^2}] = A_{\rm \, garden} \cdot n_{\rm \, occ}(c, t) $$
+            Hence, to occupy a new garden in cell $c$, the agent needs to clear trees until the condition
+            $$ A_\text{free}(c, t) - A_\text{occ}(c, t) \geq A_{\rm garden} $$
+            In our model, agents choose new gardens in well-suited cells one-by-one, beginning with the cell in which the least amount of trees needs to be cleared to obtain the required free space (optimally, there is already cleared space and no trees need to be removed additionally).
+            The addition of a garden immediately increases the agent's sweet potato yield $F^{\,i}(t)$.
+            Only when there are no more unfarmed, well-suited areas in the agent's surrounding, they also consider poorly suited cells (according to the same procedure).
+            This continues until $F^{\,i}(t) \geq F_{\rm Req}^{\,\rm i}(t)$, i.e.\ the requirement is filled, or no unfarmed, arable spaces remain within $r_{\rm F}$ distance of the agent.
         Steps:
-        - Calculate farming_fill = fraction of required farming produce filled by current gardens and their specific
-        yields F_{PI}:
-        - If more gardens required:
-            - determine neighbouring cells in r_F
-            - determine well-suited cells in neighbours
-                Do until satisfied or no well-suited, free gardens remain:
-                    - determine the cells with free, well-suited gardens,
-                    - determine the fraction of trees on the cell (assuming an initially uniform distribution within the cell)
-                    - determine the fraction of occupied gardens on the cell
-                    - determine how many trees need to be cleared to have free, cleared area sufficient for a further garden
-                    - select cell with the least amount of trees needing to be cleared
-                    - clear the necessary trees on that cell
-                    - occupy a garden on that cell and thereby increase current farming produce
-                Repeat loop for poorly suited cells
+            - Calculate farming_fill = fraction of required farming produce filled by current gardens and their specific
+            yields F_{PI}:
+            - If more gardens required:
+                - determine neighbouring cells in r_F
+                - determine well-suited cells in neighbours
+                - do until satisfied or no well-suited, free gardens remain:
+                        - determine the cells with free, well-suited gardens,
+                        - determine the fraction of trees on the cell (assuming an initially uniform distribution within the cell)
+                        - determine the fraction of occupied gardens on the cell
+                        - determine how many trees need to be cleared to have free, cleared area sufficient for a further garden
+                        - select cell with the least amount of trees needing to be cleared
+                        - clear the necessary trees on that cell
+                        - occupy a garden on that cell and thereby increase current farming produce, i.e. append f_pi_occ_gardens and occupied_gardens_inds_map
+                - repeat last two steps for poorly suited cells
 
         """
         self.farming_fill = (np.sum(self.f_pi_occ_gardens) / self.f_req).clip(max=1)
@@ -514,12 +558,14 @@ class Agent:
                     self.m.map.occupied_gardens[index_of_chosen_cell] += 1
 
                     self.farming_fill = (np.sum(self.f_pi_occ_gardens) / self.f_req).clip(max=1)
-
         return
 
     def tree_harvest(self):
         """
-        harvest required amount of trees (as long as available)
+        Cut trees in radius r_T until requirement fulfilled or no further trees available.
+
+        Idea:
+            Individuals of the agent need a constant provision of trees (and their derivate products) in each year.
 
         Steps:
         - determine neighbouring cells in r_T
@@ -559,10 +605,69 @@ class Agent:
             # Increment cut trees and adjust tree_fill
             cut_trees += 1
             self.tree_fill = cut_trees / self.t_req
+        return
 
-        # Check
-        if any(self.m.map.trees_map < 0):
-            print("ERROR Trees <0")
-            quit()
+    def update(self):
+        """
+        update procedure of harvesting, population adaptation and potential moving for the agent in each time step
+
+        Specfic steps of the yearly update:
+            - Determine resource requirements (trees and farming)
+            - Try occupying more gardens until satisfied
+            - Try cutting trees until satisfied
+            - Determine new satisfaction index
+            - population growth, split or remove
+            - potentially move location
+            - update tree preference
+        """
+
+        # === Determine Resource requirements (trees and farming) ===
+        self.calc_resource_req()
+
+        # === Try occupying more gardens until satisfied ==
+        self.occupy_gardens()
+
+        # === Tree Harvest ===
+
+        self.tree_harvest()
+
+        # === Population Change ===
+
+        self.past_satisfaction = copy(self.satisfaction)
+        self.satisfaction = np.min([self.tree_fill, self.farming_fill])
+
+        past_dependent_satisfaction = 0.5 * (self.past_satisfaction + self.satisfaction)
+        self.population_change()
+
+        # Strategy: First split if household becomes too big, then move if unhappy:
+
+        # Check if household splits
+        if self.p > self.m.p_split_threshold:
+            self.split_household()
+
+        # check if household is removed
+        if self.p < self.m.p_remove_threshold:
+            self.remove_agent()
+            survived = False
+        else:
+            survived = True
+            self.remove_unnecessary_gardens()
+
+        # === Move ===
+        if survived:
+            self.calc_resource_req()
+            if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
+                self.move(np.arange(len(self.m.map.land_cells)))
+                self.m.resource_motivated_moves += 1
+            else:
+                # could calculate penalty here.
+                pass
+
+            # === Update tree preference ===
+            self.update_t_pref()
+            self.calc_resource_req()
 
         return
+
+
+

@@ -18,8 +18,6 @@ cmap_trees = LinearSegmentedColormap.from_list("greenhalf", green[:256])
 
 
 def plot_map(map, var, label, cmap_x, vmin, vmax, title):
-
-
     w_ax = 5.6572
     h_ax = 4.1652
     xmax_Springer = 7.8
@@ -47,7 +45,7 @@ def plot_map(map, var, label, cmap_x, vmin, vmax, title):
 
     # Plot Variable
     x = np.zeros_like(map.triobject.mask, dtype=np.float32)
-    x[map.inds_map] = var
+    x[map.land_cells] = var
     trpc = ax.tripcolor(map.triobject, facecolors=x, cmap=cmap_x, edgecolors="none", vmin=vmin, vmax=vmax,
                         snap=True)
     plt.colorbar(trpc, cax=cax, label=label,
@@ -55,7 +53,7 @@ def plot_map(map, var, label, cmap_x, vmin, vmax, title):
 
     # Plot Lakes
     lakes = np.zeros_like(map.triobject.mask, dtype=np.int8)
-    lakes[map.inds_map[map.water_cells_map]] = 1
+    lakes[map.land_cells[map.water_cells_map]] = 1
     ax.tripcolor(map.triobject, facecolors=lakes, cmap=cmap_lake, edgecolors="none", snap=True, alpha=None)
 
     ax.set_title(" " + str(t) + "$\,$A.D." + r"  ", loc="right", fontsize=11, fontweight="normal", y=0.011)
