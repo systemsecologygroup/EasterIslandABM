@@ -455,7 +455,7 @@ class Map:
         - Evaluate farming productivity indices on the midpoints of cells.
         """
         # === Read in data ===
-        pulestonMap = plt.imread("Map/puleston2017_original.jpg") * 1 / 255
+        pulestonMap = plt.imread("Map/puleston2017.jpg") * 1 / 255
 
         # The following colors encode our classification into farming productivity:
         #   well-suited sites = Dark Green (rgb = ca. 0.22, 0.655, 0)

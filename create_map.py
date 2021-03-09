@@ -118,7 +118,7 @@ class Map:
         self.water_cells_map = None  # The current indices of land cells with freshwater on them
         self.penalty_w = None  # The current water penalty of land cells
         self.occupied_gardens = None
-        self.population_size = None
+        self.pop_cell = None
         self.tree_clearance = None
         self.trees_map = None
 
@@ -131,9 +131,9 @@ class Map:
         self.n_triangles_map = None  # nr of triangles 
         self.x_grid = None  # the grid in x direction; could be retrieved from self.triobject
         self.y_grid = None  # the grid in x direction; could be retrieved from self.triobject
-        self.land_cells = None # indices of the land cells in triobject; np.where(np.invert(self.triobject.mask))[0]
-        self.n_triangles_map = None  # number of cells on land; len(self.land_cells)
-        self.midpoints_map = None  # midpoints on land;  self.midpoints[self.land_cells]
+        self.inds_map = None # indices of the land cells in triobject; np.where(np.invert(self.triobject.mask))[0]
+        self.n_triangles_map = None  # number of cells on land; len(self.inds_map)
+        self.midpoints_map = None  # midpoints on land;  self.midpoints[self.inds_mao]
         self.triangle_area_m2 = None # Area of the triangle in m^2
         self.area_map_m2 = None  # Area of Easter Island in the discretised state in m2
         self.n_gardens_percell = None  # Number of gardens per cell (rounded down)
@@ -208,9 +208,9 @@ class Map:
         self.init_trees()
 
         # === Storage, Initial State: ===
-        self.population_size = np.zeros_like(self.land_cells, dtype=np.uint64)
-        self.tree_clearance = np.zeros_like(self.land_cells, dtype=np.uint64)
-        self.occupied_gardens = np.zeros_like(self.land_cells, dtype=np.uint8)
+        self.pop_cell = np.zeros_like(self.inds_map, dtype=np.uint64)
+        self.tree_clearance = np.zeros_like(self.inds_map, dtype=np.uint64)
+        self.occupied_gardens = np.zeros_like(self.inds_map, dtype=np.uint8)
         self.water_cells_map = np.copy(self.water_cells_map_nodrought)
         self.penalty_w = self.penalty_w_nodrought
 
@@ -322,9 +322,9 @@ class Map:
         mask = [False if f_el(d[0], d[1])[0][0] > 0.1 else True for d in self.midpoints]
         self.triobject.set_mask(mask)
 
-        self.land_cells = np.where(np.invert(self.triobject.mask))[0]
-        self.n_triangles_map = len(self.land_cells)
-        self.midpoints_map = self.midpoints[self.land_cells]
+        self.inds_map = np.where(np.invert(self.triobject.mask))[0]
+        self.n_triangles_map = len(self.inds_map)
+        self.midpoints_map = self.midpoints[self.inds_map]
         
         # === Get elevation/slope of the midpoints for all cells on the map ===
         el_all = np.array(
@@ -346,7 +346,7 @@ class Map:
         # coast cell if at least one but not all neighbour cells are ocean cells
         self.coast_triangle_inds = np.where((nr_ocean_nbs > 0) * (nr_ocean_nbs < 3))[0]
         # calculate distance of each cell on the map to the coast cells.
-        coast_triangle_land_cells = [np.where(self.land_cells == i)[0][0] for i in self.coast_triangle_inds]
+        coast_triangle_land_cells = [np.where(self.inds_map == i)[0][0] for i in self.coast_triangle_inds]
         self.dist_to_coast_map = np.min(distmatrix_map[coast_triangle_land_cells, :], axis=0)
         return
 
@@ -358,7 +358,7 @@ class Map:
         self.anakena_ind = self.triobject.get_trifinder()(anakena_coords_km[0], anakena_coords_km[1])
         if self.anakena_ind == -1:
             print("Error: Anakena Beach Coordinates are on a cell on the ocean. ", anakena_coords_km)
-        self.anakena_ind_map = np.where(self.land_cells == self.anakena_ind)[0][0]
+        self.anakena_ind_map = np.where(self.inds_map == self.anakena_ind)[0][0]
         self.circ_inds_anakena = np.where(distmatrix_map[:, self.anakena_ind_map] < self.m.moving_radius_arrival)[0]
         return
 
@@ -440,7 +440,7 @@ class Map:
             r = x["Radius"]
             # get triangle of the midpoint of the lake
             triangle = self.triobject.get_trifinder()(m[0], m[1])
-            triangle_map = np.where(triangle == self.land_cells)[0][0]
+            triangle_map = np.where(triangle == self.inds_map)[0][0]
             # get all triangles with midpoints within the lake radius distance
             inds_within_lake = np.where((distmatrix_map[:, triangle_map] < r))[0]
             # Create a list of triangle indices which incorporate the lakes
@@ -540,7 +540,7 @@ class Map:
         # Trees are restricted to cells with elevation below a certain elevation and a certain slope
         max_el, max_sl = (self.m.map_tree_pattern_condition["max_el"], self.m.map_tree_pattern_condition["max_sl"])
         # Calculate the probability for trees to be in each cell
-        prob_trees = np.ones_like(self.land_cells, dtype=np.float)
+        prob_trees = np.ones_like(self.inds_map, dtype=np.float)
         # On water cells: Probability 0
         prob_trees[self.water_cells_map_drought] = 0
         # if tree_decrease_lake_distance == 0 : "Uniform Pattern"
@@ -556,13 +556,13 @@ class Map:
 
         # === Init trees ===
         # distribute n_trees_arrival on the cells with prob_trees[c] for each cell
-        inds_all_trees = np.random.choice(range(len(self.land_cells)),
+        inds_all_trees = np.random.choice(range(len(self.inds_map)),
                                           size=int(self.m.n_trees_arrival),
                                           p=prob_trees
                                           )
         # get how often each value (with index in values) was chosen for a tree
         values, counts = np.unique(inds_all_trees, return_counts=True)
-        self.trees_map = np.zeros_like(self.land_cells, dtype=np.int16)
+        self.trees_map = np.zeros_like(self.inds_map, dtype=np.int16)
         self.trees_map[values] = counts
         self.trees_cap = np.copy(self.trees_map)
 
@@ -659,7 +659,7 @@ class Map:
         inds_poor = np.where(poor_allowed_map)[0]
 
         # === Assign Farming Productivity Indices to poor and well cells ===
-        self.f_pi_c = np.zeros_like(self.land_cells, dtype=np.float)
+        self.f_pi_c = np.zeros_like(self.inds_map, dtype=np.float)
         self.f_pi_c[inds_well] = self.m.f_pi_well
         self.f_pi_c[inds_poor] = self.m.f_pi_poor
 

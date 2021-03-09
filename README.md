@@ -4,7 +4,10 @@
 
 ## Model
 
-##### Short Summary:     
+![Sketch]{../master/readme_pics/sketch_standalone.pdf}
+
+##### Short Summary:   
+The ABM consists of multiple agents situated on a realistic representation of Easter Island's environment.
 The environment is encoded on a 2D discretised map with heterogeneous geographic and
 biological features. Agents represent households, who rely on two limited resources provided by this environment:
 (1) Non-renewable palm trees (or derivate products like firewood, canoes or sugary sap e.g. [Bahn2017])
@@ -16,31 +19,31 @@ of the agents on the island. The interaction with the natural environment, thus,
 patterns as well as the dynamics of the population size of the Easter Island society.
 
 ##### Time in the Model
-The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to Anakena Beach in the North part of the island in the year $t_{0} = 800{\rm A.D.}$, following [Bahn2017].
-All agents are then updated in yearly time steps up to $1900{\rm A.D.}$.
-With the growing impacts through voyagers arriving on Easter Island in the $18^{\rm th}$ and $19^{\rm th}$ centuries, deportations of inhabitants as slaves and introduction of new diseases, the prehistoric phase and the island's isolated status end.
+The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to Anakena Beach in the North part of the island in the year 800 A.D., following [Bahn2017].
+All agents are then updated in yearly time steps up to 1900 A.D..
+With the growing impacts through voyagers arriving on Easter Island in the 18th and 19th centuries, deportations of inhabitants as slaves and introduction of new diseases, the prehistoric phase and the island's isolated status end.
 
 ##### Functions:
-- init : initiate the model by seting constants and parameters, createing the map,
+- init : initiate the model by setting constants and parameters, createing the map,
 - run : run one simulation
 - init_agents : initalise the n_agents_arrival agents
 - observe : store agent's traits, state of the environment and aggregate variables for one time step
 - step : proceed one time step
-- P_cat : return the penalty following a logistic function of an evaluation variable for cells in a specified category.
+- P_cat : return the penalty following a logistic function of an evaluation variable for cells in a specified evaluation category.
 
 ## Agent
 Household agents located on the island with a specific population, resource related attributes and an update procedure for each year.
 
-##### (Independent) state variables of the agent entity 
+##### State variables of the agent entity 
 - Location (x, y, cell)
 - Populatoin size p
-- preference t_pref of resources tree over farming produce
+- preference, t_pref, of resources tree over farming produce
 - farming yield from occupied gardens and their farming productivity
-- cut trees
+- cut trees in the current year
 - satisfaction with resource harvest.
 
 ##### Processes
-- calc_resource_req : calculate resource requirement for current year from constant tree/farming requirement per person farming/tree_req_pp, tree preference t_pref and population size p
+- calc_resource_req : calculate resource requirement for current year from constant tree/farming requirement per person, farming/tree_req_pp, tree preference t_pref and population size p
 - update_t_pref :  update the tree preference according to the level of deforestation in the local surrounding (with radius r_t).
 - split_household : split household to form a new agent with population p_splitting_agent in a new location
 - remove_agent : dissolve the agent, clear its land and remove all its individuals
@@ -50,18 +53,22 @@ Household agents located on the island with a specific population, resource rela
 - calc_penalty : calculate the penalty(ies) for cell(s) triangle_inds on the island based on weights on the specific evaluation criteria, alphas,and the current tree preference
 - move : relocate the settlement according to stochastic process according to the total penalties of cells, within_inds
 - occupy_gardens : occupy more gardens (preferably, well suited and with fewest trees needed to be cleared) in radius r_F until requirement f_req fulfilled or no further unoccupied gardens available in r_F.
-- harvest_trees : cut trees in radius r_T until requirement fulfilled or no further trees available.
+- harvest_trees : cut trees in radius r_t until requirement fulfilled or no further trees available in radius r_t.
 - update : update procedure of harvesting, population adaptation and potential moving for the agent in each time step
 
 ## Environment
 Discretised representation of the map of Easter Island.
 
+![F_P]{../master/readme_pics/F_P-eps-converted-to.pdf}
+![Trees]{../master/readme_pics/Trees-eps-converted-to.pdf}
+
+
 #### Idea:
-Obtain an elevation map of a rectangular extract of Easter Island. Each pixel represents the elevation at the particular point
-Here, we obtain this from Google Earth Engine
+Obtain an elevation map of a rectangular extract of Easter Island. Each pixel represents the elevation at the particular point.
+Here, we obtain this from Google Earth Engine.
 Define a grid of points within the map.
 Define triangular cells in this grid.
-Each cell is the microscopic unit of the discretised representation.
+Each cell is a microscopic unit of the discretised representation.
 A cell has the following constant properties:
 - elevation
 - slope
@@ -74,7 +81,7 @@ A cell has the following constant properties:
 
 A cell has additionally dynamic properties:
 - trees
-- area-weighted distance to freshwater lake  or  water penalty which depends on the droughts
+- area-weighted distance to freshwater lake / water penalty which depends on the droughts
 - population
 - number of trees cleared
 - number of occupied gardens
@@ -99,28 +106,55 @@ Static Variables:
 - trees_cap : number of trees in each cell before arrival of the first settlers, thus carrying capacity
 - avail_well_gardens : Number of potential well-suited gardens in each cell determined by the area of a cell and the size of a garden
 - avail_poor_gardens : Number of potential well-suited gardens in each cell determined by the area of a cell and the size of a garden
+
 Dynamic Variables:
 - water_cells_map : indices of cells containing water
 - penalty_w : Penalty [0,1] for each cell depending on the distance to freshwater lakes, which depends on wether Rano Raraku is dried out.
 - occupied_gardens : dynamic number of occupied gardens in each cell
-- population_size : population in each cell
+- pop_cell : population in each cell
 - tree_clearance : number of cleared trees in each cell
 - trees_map : number of available trees in each cell.
 
 The class needs:
 - an elevation image (with a latitude and longitude bounding box)
 - a slope image (with the same bounding box)
-- Figure 4 of Puleston et al. 2017, giving farming producitivity indices (with a longitude and latitude bounding box)
+- Figure 4 of [Puleston2017], giving farming producitivity indices (with a longitude and latitude bounding box)
 
 
 ## How to run the model
 Run the main script by providing files containing dicts with the parameters for the specific experiment 
 and scenario (they need to match the file names in folders 'params/sa/' and 'params/scenarios') and the seed:
 ```
-    $ python main.py default full 1
+python main.py default full 1
+```
+Each run will take about 5-10 minutes on a standard computer. 
+
+Alternatively, to get the main results in the results section run (e.g.\ on a cluster and unpack later on local machine)
+```
+./run_scenarios.sh default
+```
+```
+./unpack.sh data/packed/default_full_seed
+```
+Run the analysis like ("default" is the model variant, "10" is the y_max of the island-wide population axis:
+```
+cd plot_functions
+./plot_analysis.sh default 10
 ```
 
 ## Files
+agents.py 
+contains the Agent class
+
+main.py 
+contains the Model class
+
+create_map.py
+contains the Environment in class Map
+
+saving.py 
+contains helper functions to save the model's state
+
 ./Map/
 This folder contains the maps used as inputs in the creation of the discretised map:
 - elevation_EI.tif
@@ -135,5 +169,10 @@ This folder contains python scripts that contain dicts of parameters for the con
 
 ## Further Reading
 
-[4] Volker Grimm et al. “The ODD protocol: a review and first update”. In: Ecological modelling 221.23 (2010), pp. 2760–2768.
+[Bahn2017] Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th
+edn. Rowman & Littlefield, Maryland, USA
+
+[Puleston2017] Puleston CO, Ladefoged TN, Haoa S, Chadwick OA, Vitousek PM, Stevenson CM
+(2017) Rain, sun, soil, and sweat: A consideration of population limits on Rapa Nui (Easter Island) before European contact. Frontiers in Ecology and Evolution
+DOI 10.3389/fevo.2017.00069
 

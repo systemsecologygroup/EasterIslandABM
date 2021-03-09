@@ -113,7 +113,7 @@ class Model:
         self.map.check_drought(self.time)
 
         # === Preparing for Storage ===
-        self.folder = _folder  # folder for saving
+        self.folder = folder  # folder for saving
         self.schedule = []  # list of all agents.
 
         # Environmental variables
@@ -159,7 +159,7 @@ class Model:
         self.init_agents()
         self.observe(self.time_arrival)
         for t in np.arange(self.time_arrival+1, self.time_end+1):
-            self.step(t)
+            self.step()
             self.observe(t)
             self.map.check_drought(t)
         save_all(self)
@@ -185,7 +185,7 @@ class Model:
             # Increase agent number in the cell of Anakena Beach by 1
             # self.map.agNr_c[ag.cell] += 1
             # Increase population size in the cell of Anakena Beach by the agent's population p
-            self.map.population_size[ag.cell] += ag.p
+            self.map.pop_cell[ag.cell] += ag.p
 
             # increase the running agent indices (including dead agents)
             self.max_agent_index += 1

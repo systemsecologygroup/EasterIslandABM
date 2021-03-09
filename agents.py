@@ -153,7 +153,7 @@ class Agent:
         child.f_pi_occ_gardens = np.array([])
 
         # Move the child agent and append to list of agents
-        child.move(np.arange(len(self.m.map.land_cells)))
+        child.move(np.arange(len(self.m.map.inds_map)))
         self.m.schedule.append(child)
         return
 
@@ -194,7 +194,7 @@ class Agent:
         dissolve the agent, clear its land and remove all its individuals
         """
         # remove population from the cell
-        self.m.map.population_size[self.cell] -= self.p
+        self.m.map.pop_cell[self.cell] -= self.p
         # remove all gardens
         for garden in self.occupied_gardens_inds_map:
             self.m.map.occupied_gardens[garden] -= 1
@@ -234,7 +234,7 @@ class Agent:
         self.m.excess_births += excess_births
 
         # adjust population in cell
-        self.m.map.population_size[self.cell] += excess_births - excess_deaths
+        self.m.map.pop_cell[self.cell] += excess_births - excess_deaths
 
         return
 
@@ -349,7 +349,7 @@ class Agent:
 
         # === Pop Density Penalty ===
         # Population density = sum of population in each cell in r_F / (nr of cells in r_F distance * cell area)
-        pd = np.dot(self.m.map.population_size, circ_inds_farming_arr) / \
+        pd = np.dot(self.m.map.pop_cell, circ_inds_farming_arr) / \
              (np.sum(circ_inds_farming_arr, axis=0) * self.m.map.triangle_area_m2 * 1e-6)
         p_pd = self.m.P_cat(pd, "pd")
 
@@ -417,7 +417,7 @@ class Agent:
         """
 
         # === Clear your old space ===
-        self.m.map.population_size[self.cell] -= self.p
+        self.m.map.pop_cell[self.cell] -= self.p
         for garden in self.occupied_gardens_inds_map:
             self.m.map.occupied_gardens[garden] -= 1
         self.occupied_gardens_inds_map = np.array([]).astype(int)
@@ -437,10 +437,10 @@ class Agent:
         else:
             # Choose new cell randomly
             self.cell = np.random.choice(within_inds)
-        self.cell_all = self.m.map.land_cells[self.cell]
+        self.cell_all = self.m.map.inds_map[self.cell]
 
         # Increase population in the cell.
-        self.m.map.population_size[self.cell] += self.p
+        self.m.map.pop_cell[self.cell] += self.p
 
         # Find settlement location in the triangle:
         # Get corner points of the agent's chosen triangle
@@ -657,7 +657,7 @@ class Agent:
         if survived:
             self.calc_resource_req()
             if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
-                self.move(np.arange(len(self.m.map.land_cells)))
+                self.move(np.arange(len(self.m.map.inds_map)))
                 self.m.resource_motivated_moves += 1
             else:
                 # could calculate penalty here.
