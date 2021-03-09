@@ -4,13 +4,10 @@
 
 ## Model
 
-<<<<<<< HEAD
 <p align="center">
   <img src="readme_pics/sketch.png" width="500">
 </p>
-=======
-![Sketch]{/readme_pics/sketch_standalone.pdf}
->>>>>>> 025cc98a118134e03a913c118fa52d41cfd16aec
+
 
 ##### Short Summary:   
 The ABM consists of multiple agents situated on a realistic representation of Easter Island's environment.
@@ -65,16 +62,10 @@ Household agents located on the island with a specific population, resource rela
 ## Environment
 Discretised representation of the map of Easter Island.
 
-<<<<<<< HEAD
 <p align="center">
   <img src="readme_pics/F_P.png" width="200">
   <img src="readme_pics/Trees.png" width="200">
 </p>
-=======
-![F_P]{/readme_pics/F_P-eps-converted-to.pdf}
-![Trees]{/readme_pics/Trees-eps-converted-to.pdf}
->>>>>>> 025cc98a118134e03a913c118fa52d41cfd16aec
-
 
 #### Idea:
 Obtain an elevation map of a rectangular extract of Easter Island. Each pixel represents the elevation at the particular point.
