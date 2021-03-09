@@ -1,7 +1,6 @@
 import numpy as np
 
 params_const = {
-    "n_agents_arrival": 2,
     "p_arrival": 40,
     "time_end": 1900,
     "moving_radius_arrival": 1,
@@ -15,7 +14,6 @@ params_const = {
     "t_pref_max": 0.8,
     "t_pref_min": 0.2,
     "p_splitting_agent": int(12),
-    "p_split_threshold": int(36),
     "p_remove_threshold": int(6),
     "satisfaction_equ": 0.68844221,  # Puleston et al 2017
     "evaluation_thresholds":   # moving_evaluation_thresholds
