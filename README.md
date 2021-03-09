@@ -34,6 +34,9 @@ With the growing impacts through voyagers arriving on Easter Island in the 18th 
 - step : proceed one time step
 - P_cat : return the penalty following a logistic function of an evaluation variable for cells in a specified evaluation category.
 
+See [ModelSection](md_docs/model_description.md) for more details.
+
+
 ## Agent
 Household agents located on the island with a specific population, resource related attributes and an update procedure for each year.
 
@@ -58,6 +61,9 @@ Household agents located on the island with a specific population, resource rela
 - occupy_gardens : occupy more gardens (preferably, well suited and with fewest trees needed to be cleared) in radius r_F until requirement f_req fulfilled or no further unoccupied gardens available in r_F.
 - harvest_trees : cut trees in radius r_t until requirement fulfilled or no further trees available in radius r_t.
 - update : update procedure of harvesting, population adaptation and potential moving for the agent in each time step
+
+
+See [AgentSection](md_docs/agent_description.md) for more details.
 
 ## Environment
 Discretised representation of the map of Easter Island.
@@ -124,6 +130,8 @@ The class needs:
 - a slope image (with the same bounding box)
 - Figure 4 of [Puleston2017], giving farming producitivity indices (with a longitude and latitude bounding box)
 
+See [MapSection](md_docs/map_description.md) for more details.
+
 ## Parameters for the results
 
 ### Constants
@@ -150,24 +158,29 @@ The class needs:
 | alpha | see below | weights of each category in the decision about moving to a new location |
 
 
-Evaluation Thresholds
-
-| w01 | w99 | el01 | el99 | sl01 | sl99 | pd01 | pd99 | tr01 | tr99 | f01 | f99| |-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
-| 2.8 * | 275.4 *| 0 | 300 | 0 | 7.5 | 0 | 300 | 0 | *** | 0 | **** |
-
-*:  (0.5 km)^2 / (pi * rad_raraku^2)
-**: (5 km)^2 / (pi * rad_raraku^2)
-***: ag.t_pref * t_req_pp * ag.p * satisfaction_equ
-****: (1-ag.t_pref) * f_req_pp * ag.p * satisfaction_equ
-
 Alpha
 
-| Freshwater distance w | Geography g | Pop Dens pd | Trees tr | Farming availability f |  |-----|-----|-----|-----|-----|
+| Freshwater distance w | Geography g | Pop Dens pd | Trees tr | Farming availability f | 
+ |-----|-----|-----|-----|-----|
 | 0.2 | 0.2 | 0.2 | 0.2 | 0.2 |
+
+Evaluation Thresholds
+
+| w01 | w99 | el01 | el99 | sl01 | sl99 | pd01 | pd99 | tr01 | tr99 | f01 | f99 |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+| 2.8 (a) | 275.4 (b) | 0 | 300 | 0 | 7.5 | 0 | 300 | 0 | (c) | 0 | (d) |
+
+(a):  (0.5 km)^2 / (pi * rad_raraku^2)
+(b): (5 km)^2 / (pi * rad_raraku^2)
+(c): ag.t_pref * t_req_pp * ag.p * satisfaction_equ
+(d): (1-ag.t_pref) * f_req_pp * ag.p * satisfaction_equ
+
+
 
 
 ### Parameters for sensitivity analysis
-| Variable | Value | Note 
+
+| Variable | Value | Note |
 |-----|-----|-----|
 | t_req_pp | 10 | required trees per person per year (for t_pref = 1) |
 | f_req_pp | 6.79 | required farmed gardens (weighted by farming productivity) per person (for t_pref = 0) |
