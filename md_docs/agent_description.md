@@ -11,52 +11,6 @@ Household agents located on the island with a specific population, resource rela
 - satisfaction with resource harvest.
 
 ## Processes
-### __init__
-Initiate the model by seting constants and parameters, createing the map,
-
-### run
-Run one simulation
-
-Steps:
-    - Initialise agents
-    - Loop through each time step
-        - Make one time step (update all agents sequentially)
-        - check whether there is a drought of rano raraku
-        
-
-### init_agents
-Initalise the n_agents_arrival agents. 
-The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to Anakena Beach in the North part of the island in the year $t_{0} = 800{\rm A.D.}$, following [Bahn2017].
-We assume, they erect a settlement nearby within radius moving_radius_arrival
-
-### observe
-At the current time step, store agent's traits, state of the environment and aggregate variables for one time step
-
-### step
-Proceed one time step
-Steps:
-    - sort agents randomly
-    - perform updates of each agent sequentially
-### P_cat
-Return the penalty following a logistic function of an evaluation variable for cells in a specified category.
-
-Idea:
-    For each evaluation category (${\rm cat}$) an agent defines a categorical penalty, $P_{\rm cat}(c)$, and evaluates all cells accordingly.
-    The more unfavourable the conditions are in a cell, the higher the cell's penalties.
-    The penalties, $P_{\rm cat}(c)$, depend logistically on the correlated, underlying geographic condition ranging from $0$ (very favourable condition) to $1$ (very unfavourable).
-    The penalty is set to $\infty$ to inhibit a relocation to particular cells $c$, if the agent can not fill either its current tree or farming requirement for at least the upcoming year if it would move to this cell.
-
-## Agent
-Household agents located on the island with a specific population, resource related attributes and an update procedure for each year.
-
-The (independent) state variables of the agent entity are:
-- Location (x, y, cell)
-- Populatoin size p
-- preference t_pref of resources tree over farming produce
-- farming yield from occupied gardens and their farming productivity
-- cut trees
-- satisfaction with resource harvest.
-
 The processes are:
 - calc_resource_req : calculate resource requirement for current year from constant tree/farming requirement per person farming/tree_req_pp, tree preference t_pref and population size p
 - update_t_pref :  update the tree preference according to the level of deforestation in the local surrounding (with radius r_t).
@@ -77,6 +31,7 @@ Initialisation of the first settlers.
 Agents of a model $m$ are initialised at a specific location $x$, $y$ on the model's discretised map of Easter Island and a poplation $p$
 Other traits are model constants or derived from these constants and the location.
 
+<!---
 In detail, the parameters are:
 \begin{tabular}{c|c|c|c}
     Variable & Description & Range & Units \\
@@ -94,6 +49,7 @@ In detail, the parameters are:
     occupied_gardens_inds_map & indices of the cells in which a garden has been set up & list of values in self.m.map.inds_map & \\
     f_pi_occ_gardens & farming productivity of the cells of each garden in occupied_gardens_inds_map & list of values [0,1] & pp/garden \\
 \end{tabular}
+--->
 
 ### calc_resource_req
 calculate resource requirement for current year from constant tree/farming requirement per person farming/tree_req_pp, tree preference t_pref and population size p

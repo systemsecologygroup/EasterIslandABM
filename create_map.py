@@ -1,8 +1,5 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import scipy.spatial.distance
 from scipy.interpolate import RectBivariateSpline
-import matplotlib as mpl
 
 
 class Map:
@@ -687,7 +684,7 @@ class Map:
 if __name__=="__main__":
     from main import Model
     import importlib
-    from plot_consts import *
+    from .plot_functions.plot_InitialMap import *
 
     # Import parameters for sensitivity analysis
     sa_mod = importlib.import_module("params.sa.default")

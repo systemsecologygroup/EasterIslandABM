@@ -67,7 +67,6 @@ class Model:
         self.seed = seed  # Seed
         np.random.seed(self.seed)
 
-        self.n_agents_arrival = params_const["n_agents_arrival"]  # nr of agents at arrival
         self.p_arrival = params_const["p_arrival"]  # population at arrival
         self.time_end = params_const["time_end"]  # end time of the simulation
         self.moving_radius_arrival = params_const["moving_radius_arrival"]    # Radius after arrival in Anakena Beach
@@ -81,7 +80,6 @@ class Model:
         self.t_pref_max = params_const["t_pref_max"]
         self.t_pref_min = params_const["t_pref_min"]
         self.p_splitting_agent = params_const["p_splitting_agent"]
-        self.p_split_threshold = params_const["p_split_threshold"]
         self.p_remove_threshold = params_const["p_remove_threshold"]
         self.s_equ = params_const["satisfaction_equ"]
         self.evaluation_thresholds = params_const["evaluation_thresholds"]
@@ -93,6 +91,10 @@ class Model:
         self.time_arrival = params_sensitivity["time_arrival"]  # time of arrival in A.D.
         self.max_p_growth_rate = params_sensitivity["max_p_growth_rate"]
         self.map_tree_pattern_condition = params_sensitivity["map_tree_pattern_condition"]
+
+        # Params for scenarios: Aggregate, Homogeneous, Constrained, Full
+        self.p_split_threshold = params_scenarios["p_split_threshold"]
+        self.n_agents_arrival = params_scenarios["n_agents_arrival"]  # nr of agents at arrival
         self.r_t = params_scenarios["r_t"]
         self.r_f = params_scenarios["r_f"]
         self.gamma = params_scenarios["gamma"]
@@ -303,10 +305,11 @@ if __name__ == "__main__":
     scenario_file = sys.argv[2]
     scenario_mod = importlib.import_module("params.scenarios." + scenario_file)
     print("scenarios.params_sensitivity: ", scenario_mod.params_scenario)
+    # For the `Aggregate' Scenario, use params.scenario.aggregate and adjust the folder name!
 
     seed = sys.argv[3]
 
-    const_file = "default_consts"  # "default_consts"  # "single_agent_consts"
+    const_file = "default_consts"  # "default_consts"
     consts_mod = importlib.import_module("params.consts."+const_file)
     print("const file", const_file)
 

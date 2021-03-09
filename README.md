@@ -249,6 +249,18 @@ This folder contains some scripts to reproduce the figures in the publication
 ./params
 This folder contains python scripts that contain dicts of parameters for the constant parameters, the ones coresponding to the senstivity analysis in the publication and the scenarios presented in the main Result section.
 
+## Python Libraries 
+
+| Package  | Version |
+|-----|-----|
+| python | 3.8 |
+| xarray | 0.16.1|
+| scipy | 1.5.0 |
+| numpy | 1.18.5 |
+| matplotlib | 3.2.2 |
+| pathlib | 1.0.1 |
+
+
 ## Further Reading
 
 [Bahn2017] Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th
