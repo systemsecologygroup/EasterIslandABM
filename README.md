@@ -6,7 +6,7 @@
 
 <<<<<<< HEAD
 <p align="center">
-  <img src="readme_pics/sketch_standalone.pdf" width="500">
+  <img src="readme_pics/sketch.png" width="500">
 </p>
 =======
 ![Sketch]{/readme_pics/sketch_standalone.pdf}
@@ -67,8 +67,8 @@ Discretised representation of the map of Easter Island.
 
 <<<<<<< HEAD
 <p align="center">
-  <img src="readme_pics/F_P-eps-converted-to.pdf" width="300">
-  <img src="readme_pics/Trees-eps-converted-to.pdf" width="300">
+  <img src="readme_pics/F_P.png" width="200">
+  <img src="readme_pics/Trees.png" width="200">
 </p>
 =======
 ![F_P]{/readme_pics/F_P-eps-converted-to.pdf}
