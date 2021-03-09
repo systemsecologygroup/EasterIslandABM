@@ -4,7 +4,7 @@
 
 ## Model
 
-![Sketch]{https://github.com/PeterSteiglechner/EasterIsland_ABM/blob/master/readme_pics/sketch_standalone.pdf}
+![Sketch]{/readme_pics/sketch_standalone.pdf}
 
 ##### Short Summary:   
 The ABM consists of multiple agents situated on a realistic representation of Easter Island's environment.
@@ -59,8 +59,8 @@ Household agents located on the island with a specific population, resource rela
 ## Environment
 Discretised representation of the map of Easter Island.
 
-![F_P]{https://github.com/PeterSteiglechner/EasterIsland_ABM/blob/master/readme_pics/F_P-eps-converted-to.pdf}
-![Trees]{https://github.com/PeterSteiglechner/EasterIsland_ABM/blob/master/readme_pics/Trees-eps-converted-to.pdf}
+![F_P]{/readme_pics/F_P-eps-converted-to.pdf}
+![Trees]{/readme_pics/Trees-eps-converted-to.pdf}
 
 
 #### Idea:
