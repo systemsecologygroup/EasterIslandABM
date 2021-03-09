@@ -5,7 +5,7 @@
 ## Model
 
 <p align="center">
-  <img src="readme_pics/sketch.png" width="500">
+  <img src="readme_pics/sketch.png" width="800">
 </p>
 
 
@@ -63,8 +63,8 @@ Household agents located on the island with a specific population, resource rela
 Discretised representation of the map of Easter Island.
 
 <p align="center">
-  <img src="readme_pics/F_P.png" width="200">
-  <img src="readme_pics/Trees.png" width="200">
+  <img src="readme_pics/F_P.png" width="300">
+  <img src="readme_pics/Trees.png" width="300">
 </p>
 
 #### Idea:
@@ -151,6 +151,7 @@ The class needs:
 
 
 Evaluation Thresholds
+
 | w01 | w99 | el01 | el99 | sl01 | sl99 | pd01 | pd99 | tr01 | tr99 | f01 | f99| |-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
 | 2.8 * | 275.4 *| 0 | 300 | 0 | 7.5 | 0 | 300 | 0 | *** | 0 | **** |
 
@@ -160,6 +161,7 @@ Evaluation Thresholds
 ****: (1-ag.t_pref) * f_req_pp * ag.p * satisfaction_equ
 
 Alpha
+
 | Freshwater distance w | Geography g | Pop Dens pd | Trees tr | Farming availability f |  |-----|-----|-----|-----|-----|
 | 0.2 | 0.2 | 0.2 | 0.2 | 0.2 |
 
@@ -175,11 +177,11 @@ Alpha
 |  | max_sl: 10 | maximum slope for trees in a cell |
 |  | tree_decrease_lake_distance: 0 | decreas of tree density with area-weighted distance to freshwater lakes. (0 means uniform distribution) |
 
-### Parameters for 
 
+### Parameters for differrent scenarios
 
-| Variable | Aggregate | Homogeneous | Constrained | Full | Description
-|-----|-----|
+| Variable | Aggregate | Homogeneous | Constrained | Full | Description |
+|-----|-----|-----|-----|-----|-----|
 | n_agents_arrival | 1 | 2 | 2 | 2 |  number of initial agents
 | p_split_threshold | infinity |  36 | 36 | 36 |  population size that triggers the splitting of an agent |
 | r_t | infinity | infinity |  2 | 2 | km; radius for tree harvest |
