@@ -1,6 +1,8 @@
 import scipy.spatial.distance
 from scipy.interpolate import RectBivariateSpline
-
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 
 class Map:
     """

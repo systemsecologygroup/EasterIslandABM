@@ -11,6 +11,9 @@ from time import time
 from pathlib import Path
 import importlib
 import shutil
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 
 from agents import Agent
 from create_map import Map
