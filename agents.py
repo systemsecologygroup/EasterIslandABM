@@ -6,6 +6,8 @@
     Python Version: 3.8
 '''
 
+from plot_functions.plot_InitialMap import *
+
 import numpy as np
 from copy import copy
 
@@ -428,6 +430,12 @@ class Agent:
 
         # === Probabilities ===
         pr_c = np.exp( - self.m.gamma * p_tot)
+
+        if self.m.time == 1400 or self.m.time == 1500:
+            for v, label in zip([p_tr, p_f, p_pd, p_tot], ["tr", "f", "pd", "tot"]):
+                l = r"Penalty $P_{" + label + r"}"
+                plot_map(self.m.map, v, l, cmapPenalty, 0, 1, str(self.time)+"_penalty_"+label, t=self.m.time)
+            plot_map(self.m.map, pr_c, "Moving Probability", cmapProb, 1e-5, 1, str(self.time)+"_prob", t=self.m.time)
 
         # === Move ===
         if any(pr_c > 0):

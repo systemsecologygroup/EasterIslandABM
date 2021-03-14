@@ -27,9 +27,9 @@ params_const = {
             "pd01": 0,  # Population density: 1% penalty     [ppl/km^2] prefer no neighbours
             "pd99": 300,
             # Population density: 99% penalty    [ppl/km^2] Kirch (2010), Puleston et al. (2017), rough estimate of local population density in Hawaii and Maui
-            "tr01": 0,  # Tree: 1% penalty     [m] prefer low elevation
+            "tr01": 1e5,  # Tree: 1% penalty     prefer if there are many trees around
             "tr99": lambda ag, m: ag.t_pref * m.t_req_pp * ag.p * m.s_equ,  # Tree: 99% penalty
-            "f01": 0,  # Farming: 1% penalty
+            "f01": 200,  # Farming: 1% penalty    prefer if there are many farming grounds around
             "f99": lambda ag, m: (1 - ag.t_pref) * m.f_req_pp * ag.p * m.s_equ,  # Farming: 99% penalty
         },
     "alpha":
