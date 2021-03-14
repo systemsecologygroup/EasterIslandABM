@@ -19,6 +19,10 @@ from agents import Agent
 from create_map import Map
 from saving import *
 
+
+from plot_functions.plot_InitialMap import *
+
+
 class Model:
     """
     An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents on Easter Island
@@ -149,6 +153,8 @@ class Model:
         self.excess_deaths = 0
         self.excess_births = 0
         self.max_agent_index = 0
+
+        self.time = np.nan
         return
 
     def run(self):
@@ -161,9 +167,11 @@ class Model:
                 - Make one time step (update all agents sequentially)
                 - check whether there is a drought of rano raraku
         """
+        self.time = self.time_arrival
         self.init_agents()
         self.observe(self.time_arrival)
         for t in np.arange(self.time_arrival+1, self.time_end+1):
+            self.time = t
             self.step()
             self.observe(t)
             self.map.check_drought(t)
