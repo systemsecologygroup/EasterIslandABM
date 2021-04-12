@@ -8,9 +8,8 @@ scenario_run(){
   ./run_ensemble.sh $1 $2
 }
 
-#scenarios="constrainedrf2 fullrf2"
-#scenarios="homogeneous constrained full"
-scenarios="full"
+scenarios="homogeneous constrained full"
+
 for sc in $scenarios; do\
   echo "Starting runs for the following settings with different seeds"
   echo "Sensitivity parameters: "$sa

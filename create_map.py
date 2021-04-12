@@ -754,8 +754,8 @@ if __name__ == "__main__":
 
     # Seed
     seed = 1
-    consts_mod.params_const["gridpoints_x"] = 30
-    consts_mod.params_const["gridpoints_y"] = 20
+    consts_mod.params_const["gridpoints_x"] = 75
+    consts_mod.params_const["gridpoints_y"] = 50
 
     # === RUN ===
     m = Model("Map/", int(seed), consts_mod.params_const, sa_mod.params_sensitivity, scenario_mod.params_scenario)

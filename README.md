@@ -118,14 +118,19 @@ cd plot_functions
 - ```./params```
     This folder contains python scripts that define dictionaries of parameters for 
     - the constant parameters, 
-    - the ones coresponding to the senstivity analysis in the publication and
+    - the ones corresponding to the sensitivity analysis in the publication and
     - the scenarios presented in the main result section.
 - ```run_scenarios.sh```
-    Bash script to run all three scenarios at the same time
+    Bash script to run all three scenarios
 - ```run_ensemble.sh```
-    Bash script to run all three scenarios at the same time
+    Bash script to run multiple seeds for a given scenario
+- ```unpack.sh```
+    Bash script to unpack results from run_scenarios.sh
+  
     
 ## Python Libraries and Dependencies
+
+The code was tested with the following python packages: 
 
 | Package  | Version |
 |-----|-----|
