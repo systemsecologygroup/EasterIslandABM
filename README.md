@@ -120,7 +120,11 @@ cd plot_functions
     - the constant parameters, 
     - the ones coresponding to the senstivity analysis in the publication and
     - the scenarios presented in the main result section.
-
+- ```run_scenarios.sh```
+    Bash script to run all three scenarios at the same time
+- ```run_ensemble.sh```
+    Bash script to run all three scenarios at the same time
+    
 ## Python Libraries and Dependencies
 
 | Package  | Version |

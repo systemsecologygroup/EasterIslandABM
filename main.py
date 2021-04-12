@@ -20,7 +20,7 @@ from create_map import Map
 from saving import *
 
 
-from plot_functions.plot_InitialMap import *
+# from plot_functions.plot_InitialMap import *
 
 
 class Model:
