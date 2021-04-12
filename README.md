@@ -75,7 +75,7 @@ These files contain dictionaries with the parameters for each specific experimen
         e.g. use ```full``` for /params/sa/full
 - the third additional argument denotes the (integer) seed value used.
 
-For a detailed description of the parameters, look at [Parameters]{PARAMETERS.md}.
+For a detailed description of the parameters, look at [Parameters](PARAMETERS.md).
 ```
 python main.py default full 1
 ```
@@ -144,15 +144,15 @@ The code was tested with the following python packages:
 
 ## Further Reading
 
-[Bahn2017] Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th
+[Bahn2017]: Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th
 edn. Rowman & Littlefield, Maryland, USA
 
-[Puleston2017] Puleston CO, Ladefoged TN, Haoa S, Chadwick OA, Vitousek PM, Stevenson CM
+[Puleston2017]: Puleston CO, Ladefoged TN, Haoa S, Chadwick OA, Vitousek PM, Stevenson CM
 (2017) Rain, sun, soil, and sweat: A consideration of population limits on Rapa Nui (Easter Island) before European contact. Frontiers in Ecology and Evolution
 DOI 10.3389/fevo.2017.00069
 
-[Rull2020] Rull, V. (2020), The deforestation of Easter Island. Biol Rev, 95: 124-141. https://doi.org/10.1111/brv.12556
+[Rull2020]: Rull, V. (2020), The deforestation of Easter Island. Biol Rev, 95: 124-141. https://doi.org/10.1111/brv.12556
 
 # Author
-Peter Steiglechner, April 2021. [Orcid Link]{https://orcid.org/0000-0002-1937-5983}
+Peter Steiglechner, April 2021. [Orcid Link](https://orcid.org/0000-0002-1937-5983)
 

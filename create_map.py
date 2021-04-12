@@ -762,7 +762,7 @@ if __name__ == "__main__":
 
     # === PLOT ====
     # Plot Map for Farming Productivity Index
-    plot_map(m.map, m.map.f_pi_c * 100, r"Farm. Prod. $F_{\rm P}(c)$ [%]", cmap_fp, 0.01, 100, "coarseF_P")
+    plot_map(m.map, m.map.f_pi_c * 100, r"Farm. Prod. $F_{\rm P}(c)$ [%]", cmap_fp, 0.01, 100, "F_P")
 
     # Plot Map for Trees.
-    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 75, "coarseT")
+    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 75, "T")
