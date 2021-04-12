@@ -119,3 +119,6 @@ Steps:
 - Scale data to fit the previously defined grid with length units km
 - Evaluate farming productivity indices on the midpoints of cells.
         
+
+
+

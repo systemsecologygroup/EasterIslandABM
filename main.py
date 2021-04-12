@@ -28,34 +28,48 @@ class Model:
     An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents on Easter Island
     and their interactions with the natural environment through resource consumption prior to European arrival.
 
-    Short Summary:
+    Short Summary
+    =============
     The environment is encoded on a 2D discretised map with heterogeneous geographic and
     biological features. Agents represent households, who rely on two limited resources provided by this environment:
     (1) Non-renewable palm trees (or derivate products like firewood, canoes or sugary sap e.g. [Bahn2017])
     and (2) sweet potatoes. Agents obtain these resources by cutting trees and cultivating arable farming sites in
     their near surroundings. Thereby, they change their local environment. The household's population growth or
-    decline consequently depends on the success of this resource acquisition. Furthermore, the resource availability
-    and other geographic indicators, like elevation or distance to freshwater lakes, determine the moving behaviour
-    of the agents on the island. The interaction with the natural environment, thus, constrains and shapes settlement
-    patterns as well as the dynamics of the population size of the Easter Island society.
+    decline consequently depends on the success of this resource acquisition.
+    We define three adaptation mechanisms which we implement as heuristic rules for the agents:
+    First, agents split into two households when their population exceeds a threshold.
+    Second, failure to harvest a sufficient fraction of the required resources pushes agents to move their settlement.
+    Heterogeneous resource availability and other geographic indicators, like elevation or distance to freshwater lakes,
+    influence the decision on an agent's new location on the island.
+    Thirdly, agents adapt their preference for trees over sweet potatoes in response to a changing environment.
+    In summary, the interaction with the natural environment, constrains and shapes settlement and harvest patterns as
+    well as the dynamics of the population size of the Easter Island society.
 
     Time in the Model
-        The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to Anakena Beach in the North part of the island in the year $t_{0} = 800{\rm A.D.}$, following [Bahn2017].
-        All agents are then updated in yearly time steps up to $1900{\rm A.D.}$.
-        With the growing impacts through voyagers arriving on Easter Island in the $18^{\rm th}$ and $19^{\rm th}$ centuries, deportations of inhabitants as slaves and introduction of new diseases, the prehistoric phase and the island's isolated status end.
+    =================
+        The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to
+                Anakena Beach in the North part of the island in the year t_0 = 800 A.D., following [Bahn2017].
+        All agents are then updated in yearly time steps up to 1900 A.D..
+        With the growing impacts through voyagers arriving on Easter Island in the 18th and 19th
+                centuries, deportations of inhabitants as slaves and introduction of new diseases, the prehistoric
+                phase and the island's isolated status end.
 
-    Functions:
-    - init : initiate the model by seting constants and parameters, createing the map,
+    Functions
+    =========
+    - init : initiate the model by setting constants and parameters and creating the map,
     - run : run one simulation
-    - init_agents : initalise the n_agents_arrival agents
+    - init_agents : initialise the n_agents_arrival agents
     - observe : store agent's traits, state of the environment and aggregate variables for one time step
     - step : proceed one time step
-    - P_cat : return the penalty following a logistic function of an evaluation variable for cells in a specified category.
+    - P_cat : return the penalty following a logistic function of an evaluation variable for cells in a specified
+        category.
 
+    [Bahn2017]
+        Bahn, P., & Flenley, J. (2017). Easter Island, Earth Island: The Enigmas of Rapa Nui. Rowman & Littlefield.
     """
     def __init__(self, folder, seed, params_const, params_sensitivity, params_scenarios, **kwargs):
         """
-        Initiate the model by seting constants and parameters, createing the map,
+        Initiate the model by seting constants and parameters and creating the map
 
         Parameters
         ----------
@@ -161,11 +175,12 @@ class Model:
         """
         Run one simulation
 
-        Steps:
+        Steps
+        =====
             - Initialise agents
             - Loop through each time step
                 - Make one time step (update all agents sequentially)
-                - check whether there is a drought of rano raraku
+                - check whether there is a drought of Rano Raraku
         """
         self.time = self.time_arrival
         self.init_agents()
@@ -183,7 +198,8 @@ class Model:
         """
         Initalise the n_agents_arrival agents
 
-        The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to Anakena Beach in the North part of the island in the year $t_{0} = 800{\rm A.D.}$, following [Bahn2017].
+        The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to
+            Anakena Beach in the North part of the island in the year t_0 = 800 A.D., following [Bahn2017].
         We assume, they erect a settlement nearby within radius moving_radius_arrival
         """
         for i in range(self.n_agents_arrival):
@@ -216,7 +232,8 @@ class Model:
 
     def observe(self, t):
         """
-        At the current time step, store agent's traits, state of the environment and aggregate variables for one time step
+        At the current time step, store agents' traits, state of the environment and aggregate variables for one
+            time step
         """
         store_agents_values(self, t)  # agent's traits
         store_dynamic_map(self, t)  # state of the environment
@@ -234,7 +251,8 @@ class Model:
         """
         Proceed one time step
 
-        Steps:
+        Steps
+        =====
             - sort agents randomly
             - perform updates of each agent sequentially
         """
@@ -252,17 +270,21 @@ class Model:
         """
         Return the penalty following a logistic function of an evaluation variable for cells in a specified category.
 
-        Idea:
-            For each evaluation category (${\rm cat}$) an agent defines a categorical penalty, $P_{\rm cat}(c)$, and evaluates all cells accordingly.
-            The more unfavourable the conditions are in a cell, the higher the cell's penalties.
-            The penalties, $P_{\rm cat}(c)$, depend logistically on the correlated, underlying geographic condition ranging from $0$ (very favourable condition) to $1$ (very unfavourable).
-            The penalty is set to $\infty$ to inhibit a relocation to particular cells $c$, if the agent can not fill either its current tree or farming requirement for at least the upcoming year if it would move to this cell.
+        Idea
+        ====
+        -For each evaluation category (cat) an agent defines a categorical penalty, P_{cat}(c), and evaluates
+            all cells accordingly.
+        - The more unfavourable the conditions are in a cell, the higher the cell's penalties.
+        - The penalties, P_{cat}(c), depend logistically on the correlated, underlying geographic condition
+            ranging from 0 (very favourable condition) to 1 (very unfavourable).
+        - The penalty is set to infinity to inhibit a move to those cells c, in which the agent can not fill either
+            its current tree or farming requirement for at least the upcoming year if it would move to this cell.
 
         Parameters
         --------
         cat : string
             can be one of "w", "pd", "g", "tr", "f"
-            if cat is "tr" or "f", then kwargs needs to have "ag": kwargs["ag"] = agent
+            if cat is "tr" or "f", then kwargs needs to have "ag": kwargs["ag"] = object of class Agent
         x : array of floats
             values of the evaluation criteria for each cell
         infty_penalty : str, default: "none"
@@ -303,6 +325,22 @@ class Model:
 
 
 if __name__ == "__main__":
+    """
+    Example Usage
+    =============
+    '''
+        python main.py default full 1
+    '''
+    - the first additional argument is the filename of parameter values for the different experiments tested in the 
+        sensitivity analysis:
+            params/sa/...  e.g. /params/sa/full
+    - the second additional argument is the filename of parameter values for the specific scenario `homogeneous', 
+        `constrained', or `full': 
+            params/scenarios/... e.g. /params/scenarios/full
+    - the third additional argument denotes the seed value used.
+    
+        
+    """
     print("RUN: ", sys.argv)
     if len(sys.argv) < 4:
         print("Provide 3 arguments: python main.py default full 1")

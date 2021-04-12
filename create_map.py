@@ -1,20 +1,31 @@
+"""
+    File name: create_map.py
+    Author: Peter Steiglechner
+    Date created: 01 December 2020
+    Date last modified: 12 April 2021
+    Python Version: 3.8
+"""
+
 import scipy.spatial.distance
 from scipy.interpolate import RectBivariateSpline
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 class Map:
     """
-    Discretised representation of the map of Easter Island.
+    Discretised representation of Easter Island.
 
-    Idea:
-        Obtain an elevation map of a rectangular extract of Easter Island. Each pixel represents the elevation at the particular point
-        Here, we obtain this from Google Earth Engine
-        Define a grid of points within the map.
-        Define triangular cells in this grid.
-        Each cell is the microscopic unit of the discretised representation.
-        A cell has the following constant properties:
+    Idea
+    ====
+    - Obtain an elevation map of a rectangular extract of Easter Island. Each pixel represents the elevation at the
+        particular point
+        - Here, we use data from Google Earth Engine
+        - Define a (coarse) grid of points within this map.
+        - Define triangular cells in this grid.
+        - Each cell is the smallest unit of our discretised representation of Easter Island.
+        - A cell has the following constant properties:
             - elevation
             - slope
             - corresponding geography penalty.
@@ -24,56 +35,75 @@ class Map:
             - number of available well and poorly suited gardens
             - tree carrying capacity (or trees at time of arrival)
 
-        A cell has additionally dynamic properties:
+        - A cell has additionally dynamic properties:
             - trees
-            - area-weighted distance to freshwater lake  or  water penalty which depends on the droughts
+            - smallest area-weighted distance to freshwater lake (depending on droughts)
             - population
             - number of trees cleared
             - number of occupied gardens
 
-        additionally a cell can be:
+        - Additionally a cell can be:
             - on land or ocean
-            - the cell of anakena beach,
+            - the special cell containing Anakena beach (the landing spot of the Rapa Nui),
             - part of a freshwater lake
             - a coastal cell
 
-
-    Implementation details:
-    Static Variables:
+    Implementation details
+    ======================
+        Static Variables
+        ================
         - triobject : consisting of the matplotlib.triangulation object
             - x : coordinate of points in km
             - y : coordinate of points in km
             - triangles : the indices of the three corner points for each triangular cell
-            - mask : denoting those triangles not on the ocean, i.e.\ where the midpoint has a non-zero elevation
+            - mask : denoting those triangles not on the ocean, i.e. where the midpoint has a non-zero elevation
         - el_map : elevation on each cell in m above sea level
-        - sl_map : map of slope on each cell in degrees
-        - f_pi_c : the farming productivity index (f_pi_well for well suited and f_pi_poor for poorly suited, 0 else) for each cell
-        - trees_cap : number of trees in each cell before arrival of the first settlers, thus carrying capacity
-        - avail_well_gardens : Number of potential well-suited gardens in each cell determined by the area of a cell and the size of a garden
-        - avail_poor_gardens : Number of potential well-suited gardens in each cell determined by the area of a cell and the size of a garden
-    Dynamic Variables:
+        - sl_map : slope of the territorry on each cell in degrees
+        - f_pi_c : the farming productivity index (f_pi_well for well suited and f_pi_poor for poorly suited, 0 else)
+                for each cell
+        - trees_cap : number of trees in each cell before arrival of the first settlers, thus, the cell's tree carrying
+                capacity
+        - avail_well_gardens : Number of potential well-suited gardens in each cell determined by the area of a cell and
+                the size of a garden
+        - avail_poor_gardens : Number of potential well-suited gardens in each cell determined by the area of a cell and
+                the size of a garden
+
+        Dynamic Variables
+        =================
         - water_cells_map : indices of cells containing water
-        - penalty_w : Penalty [0,1] for each cell depending on the distance to freshwater lakes, which depends on wether Rano Raraku is dried out.
-        - occupied_gardens : dynamic number of occupied gardens in each cell
+        - penalty_w : Penalty [0,1] for each cell depending on the smallest area-weighted distance to any freshwater
+                lake, which depends on whether Rano Raraku is dried out.
+        - occupied_gardens : dynamic number of occupied gardens by agents in each cell
         - population_size : population in each cell
         - tree_clearance : number of cleared trees in each cell
         - trees_map : number of available trees in each cell.
 
-    The class needs:
-        - an elevation image (with a latitude and longitude bounding box)
-        - a slope image (with the same bounding box)
-        - Figure 4 of Puleston et al. 2017, giving farming producitivity indices (with a longitude and latitude bounding box)
+    The class needs as input
+    ========================
+    - an elevation image (with a latitude and longitude bounding box)
+    - a slope image (with the same bounding box)
+    - Figure 4 of [Puleston2017], giving farming producitivity indices
+            (with a longitude and latitude bounding box)
+
+    [Puleston2017]
+        Puleston, C. O., Ladefoged, T. N., Haoa, S., Chadwick, O. A., Vitousek, P. M., & Stevenson, C. M. (2017). Rain,
+        sun, soil, and sweat: a consideration of population limits on Rapa Nui (Easter Island) before European Contact.
+        Frontiers in Ecology and Evolution, 5, 69.
     """
+
     def __init__(self, m, el_image_file, sl_image_file, puleston2017_image_file, el_bbox, puleston_bbox):
         """
-        create the discretised representation of Easter Island and assign values for all variables in all cells in numpy arrays.
+        create the discretised representation of Easter Island and assign values for all variables in all cells
+         stored in numpy arrays with one entry per cell.
 
-        Steps:
+        Steps
+        =====
         - Create a discretised representation of Easter Island via triangular cells
         - calculate the distance matrix of all land cells
         - determine cells that are at the coast and the distance of all land cells to the nearest coast.
-        - determine cell of Anakena Beach (on land and in total) and the cells within the initial moving radius
-        - get water cells for the Rano Aroi, Kau and Raraku and determine the cells, water penalties and distance to water in the peridos when Raraku is dried out and when it is not.
+        - determine cell of Anakena Beach and the cells within the initial moving radius
+        - get water cells for the Lakes Rano Aroi, Kau and Raraku and determine the cells, water penalties and distance
+                to water in the periods when Raraku is dried out and when it is not.
         - calculate penalty of elevation and slope and combine them to geography penalty
         - get the farming productivity indices and the amount of available farming gardens in each cell
         - distribute trees on the island as the tree carrying capacity
@@ -81,7 +111,7 @@ class Map:
 
         Parameters
         ----------
-        m : instance of class
+        m : instance of class Model
             the corresponding model hosting the map
         el_image_file : str
             path and filename of the elevation image
@@ -92,7 +122,7 @@ class Map:
         puleston2017_image_file : str
             path and filename of the farming productivity image by Puleston 2017
         puleston_bbox : (float, float, float, float)
-            bounding box of the image by Pulestong: lonmin, latmin, lonmax, latmax
+            bounding box of the image by Puleston 2017: lonmin, latmin, lonmax, latmax
         """
 
         self.el_image_file = el_image_file
@@ -100,7 +130,7 @@ class Map:
         self.el_bbox = el_bbox  # lonmin, latmin, lonmax, latmax
         self.puleston2017_image_file = puleston2017_image_file  #
         self.puleston_bbox = puleston_bbox  # lonmin, latmin, lonmax, latmax
-        
+
         self.m = m  # Model
 
         # State Variables:
@@ -126,14 +156,14 @@ class Map:
         #   static variables above
         #
         # Grid Related
-        self.midpoints =None  # midpoints of triangles
+        self.midpoints = None  # midpoints of triangles
         self.n_triangles_map = None  # nr of triangles 
         self.x_grid = None  # the grid in x direction; could be retrieved from self.triobject
         self.y_grid = None  # the grid in x direction; could be retrieved from self.triobject
-        self.inds_map = None # indices of the land cells in triobject; np.where(np.invert(self.triobject.mask))[0]
+        self.inds_map = None  # indices of the land cells in triobject; np.where(np.invert(self.triobject.mask))[0]
         self.n_triangles_map = None  # number of cells on land; len(self.inds_map)
         self.midpoints_map = None  # midpoints on land;  self.midpoints[self.inds_mao]
-        self.triangle_area_m2 = None # Area of the triangle in m^2
+        self.triangle_area_m2 = None  # Area of the triangle in m^2
         self.area_map_m2 = None  # Area of Easter Island in the discretised state in m2
         self.n_gardens_percell = None  # Number of gardens per cell (rounded down)
         self.coast_triangle_inds = None  # Indices of cells at the coast
@@ -181,29 +211,35 @@ class Map:
 
         # === Get Freshwater lakes ===
         # Coordinates of Freshwater sources
-        raraku = {"midpoint": [-27.121944, -109.2886111], "Radius": 170e-3, "area": np.pi*(170e-3)**2}  # Radius in km
-        kau = {"midpoint": [-27.186111, -109.4352778], "Radius": 506e-3, "area": np.pi*(506e-3)**2}  # Radius in km
-        aroi = {"midpoint": [-27.09361111, -109.373888], "Radius": 75e-3, "area": np.pi*(75e-3)**2}  # Radius in km
+        raraku = {"midpoint": [-27.121944, -109.2886111], "Radius": 170e-3,
+                  "area": np.pi * (170e-3) ** 2}  # Radius in km
+        kau = {"midpoint": [-27.186111, -109.4352778], "Radius": 506e-3, "area": np.pi * (506e-3) ** 2}  # Radius in km
+        aroi = {"midpoint": [-27.09361111, -109.373888], "Radius": 75e-3, "area": np.pi * (75e-3) ** 2}  # Radius in km
         # calculate which cells have freshwater in two scenarios: Drought and No Drought of Rano Raraku
-        self.water_cells_map_nodrought, area_corresp_lake_nodrought = self.setup_freshwater_lakes(distmatrix_map, [raraku, kau, aroi])
-        self.water_cells_map_drought, area_corresp_lake_drought = self.setup_freshwater_lakes(distmatrix_map, [kau, aroi])
+        self.water_cells_map_nodrought, area_corresp_lake_nodrought = self.setup_freshwater_lakes(distmatrix_map,
+                                                                                                  [raraku, kau, aroi])
+        self.water_cells_map_drought, area_corresp_lake_drought = self.setup_freshwater_lakes(distmatrix_map,
+                                                                                              [kau, aroi])
         # For both scenarios (dorught/nodrought) calculate the penalty for all cells
-        self.penalty_w_nodrought, self.dist_water_map = self.calc_penalty_w(distmatrix_map, self.water_cells_map_nodrought, area_corresp_lake_nodrought)
-        self.penalty_w_drought, _ = self.calc_penalty_w(distmatrix_map, self.water_cells_map_drought, area_corresp_lake_drought)
+        self.penalty_w_nodrought, self.dist_water_map = self.calc_penalty_w(distmatrix_map,
+                                                                            self.water_cells_map_nodrought,
+                                                                            area_corresp_lake_nodrought)
+        self.penalty_w_drought, _ = self.calc_penalty_w(distmatrix_map, self.water_cells_map_drought,
+                                                        area_corresp_lake_drought)
 
         # === Calc Resource Access ===
         # for each cell on the map, get all map cells that are within r_t and r_f distance, respectively.
         # if circ_inds_trees[c, c2] == True, then c2 is in r_t distance to c.
         # Agent in c can then harvest trees in c2.
         # An agent in c can loop through the cells with value true in circ_inds_...
-        self.circ_inds_trees = np.array(distmatrix_map<self.m.r_t, dtype=bool)
-        self.circ_inds_farming = np.array(distmatrix_map<self.m.r_f, dtype=bool)
+        self.circ_inds_trees = np.array(distmatrix_map < self.m.r_t, dtype=bool)
+        self.circ_inds_farming = np.array(distmatrix_map < self.m.r_f, dtype=bool)
 
         # === Agriculture ===
         print("Calculating the farming producitivity index f_pi_c for each cell and the amount of arable gardens")
         self.get_agriculture()
 
-         # === Trees ===
+        # === Trees ===
         self.init_trees()
 
         # === Storage, Initial State: ===
@@ -222,7 +258,8 @@ class Map:
         using elevation and slope data from Googe Earth Engine
         (files Map/elevation_EI.tif and Map/slope_EI.tif)
 
-        The steps are:
+        Steps
+        =====
         - load elevation and slope data obtained in a certain latitude/longitude bounding box
         - transform pixels to length units (via scaling the original bounding box)
         - define interpolation functions of the elevation and slope for continuous points in the bounding box
@@ -230,7 +267,7 @@ class Map:
         - Via the matplotlib.pyplot.triangulation module, define triangular cells on the grid.
         - Calculate the midpoints of the resulting triangles
         - Mask out the ocean triangles, i.e. those with elevation at the midpoint below 10cm
-        - Evaluate the elevation and slope at the midpoints of cells on land
+        - Evaluate the interpolation functions for elevation and slope at the midpoints of cells on land
 
         Parameters
         ----------
@@ -252,7 +289,6 @@ class Map:
         sl_image = plt.imread(self.sl_image_file)
         # Convert data: 30 degree is the maximum slope set in Google Earth Engine Data
         sl_image = sl_image.astype(float) * 30 / 255
-
 
         # === Transform pixel elevation image to km ===
         #
@@ -299,13 +335,13 @@ class Map:
         # The bounds are the same as for the elevation image, but the number of points is set manually by parameters:
         # gridpoints_x and gridpoints_y
         self.x_grid = np.linspace(0 * d_km_pix_x,
-                             pixel_dim[1] * d_km_pix_x,
-                             gridpoints_x,  # set nr of points
-                             endpoint=False)
+                                  pixel_dim[1] * d_km_pix_x,
+                                  gridpoints_x,  # set nr of points
+                                  endpoint=False)
         self.y_grid = np.linspace(0 * d_km_pix_y,
-                             pixel_dim[0] * d_km_pix_y,
-                             gridpoints_y,  # set nr of points
-                             endpoint=False)
+                                  pixel_dim[0] * d_km_pix_y,
+                                  gridpoints_y,  # set nr of points
+                                  endpoint=False)
         # all gridpoints of the mesh
         gridpoints = np.array([[[x, y] for y in self.y_grid] for x in self.x_grid])  # TODO use meshgrid
 
@@ -324,7 +360,7 @@ class Map:
         self.inds_map = np.where(np.invert(self.triobject.mask))[0]
         self.n_triangles_map = len(self.inds_map)
         self.midpoints_map = self.midpoints[self.inds_map]
-        
+
         # === Get elevation/slope of the midpoints for all cells on the map ===
         el_all = np.array(
             [f_el(self.midpoints[k, 0], self.midpoints[k, 1])[0][0] for k in range(len(self.midpoints))])
@@ -333,7 +369,7 @@ class Map:
         sl_all = np.array(
             [f_sl(self.midpoints[k, 0], self.midpoints[k, 1])[0][0] for k in range(len(self.midpoints))])
         self.sl_map = np.array([sl_all[k] for k, m in enumerate(self.triobject.mask) if not m])
-        
+
         return
 
     def get_coast_cells(self, distmatrix_map):
@@ -351,7 +387,8 @@ class Map:
 
     def get_anakena_info(self, distmatrix_map, anakenacoords):
         """
-        determine cell of Anakena Beach (on land and in total) and the cells within the initial moving radius
+        determine cell of Anakena Beach (index of land cells and index of total cells) and the cell indices that fall
+            within the initial moving radius of Anakena Beach
         """
         anakena_coords_km = self.from_latlon_tokm(anakenacoords)
         self.anakena_ind = self.triobject.get_trifinder()(anakena_coords_km[0], anakena_coords_km[1])
@@ -406,7 +443,7 @@ class Map:
 
     def calc_penalty_g(self):
         """
-        calculate penalty of elevation and slope and combine them to geography penalty
+        calculate penalty of elevation and slope and combine them to geography penalty P_g
         """
         penalty_el = self.m.P_cat(self.el_map, "el")
         penalty_sl = self.m.P_cat(self.sl_map, "sl")
@@ -417,13 +454,13 @@ class Map:
 
     def setup_freshwater_lakes(self, distmatrix_map, lakes):
         """
-        determine which cells belong to the freshwater lakes specified by Lakes
+        determine which cells belong to the freshwater lakes specified by parameter "lakes"
 
         Parameters
         ----------
         distmatrix_map : np.array([self.n_triangles_map, self.n_triangles_map])
             Distance matrix
-        lakes : list
+        lakes : list of dicts
             list of lake dicts with keywords midpoint, radius, area
         Returns
         -------
@@ -453,11 +490,12 @@ class Map:
 
     def calc_penalty_w(self, distmatrix_map, water_cells_map, area_corresp_lake):
         """
-        Calculate water penalty
+        Calculate water penalty P_w
 
         Using evaluation variable:
-        $ w = min_{\rm lake\ l} \ d_{\rm l}^2 / A_l$
-        and logistic function $P_{\rm cat}(x)$ with the given thresholds
+        w = min_{lake l} \ d_{l}^2 / A_l,
+        where d is the distance to the lake l and A is the area of that lake
+        and the given thresholds w01 and w99.
 
         Parameters
         ----------
@@ -478,21 +516,23 @@ class Map:
         distances_to_water = distmatrix_map[water_cells_map, :]
         # Weigh distance by the size of the lake
         # Note following line: Casting to divide each row seperately
-        weighted_squ_distance_to_water = distances_to_water ** 2 / np.array(area_corresp_lake)[:,None]
+        weighted_squ_distance_to_water = distances_to_water ** 2 / np.array(area_corresp_lake)[:, None]
         # Take the minimum of the weighted distances to any of the cells containing water
         w_evaluation = np.min(weighted_squ_distance_to_water, axis=0)
         # k_w = self.m(self.m.w01, self.m.w99)
         # Calculate penalty from that
         penalty_w = self.m.P_cat(w_evaluation, "w")
 
-        #print("Water Penalties Mean: ", "%.4f" % (np.mean(P_W)))
+        # print("Water Penalties Mean: ", "%.4f" % (np.mean(P_W)))
         return penalty_w, np.min(distances_to_water, axis=0).clip(1e-10)
 
     def check_drought(self, t):
         """
-        assign freshwater lake cells and the water penalty values for all cells depending on wether Rano Raraku is dried out
+        assign freshwater lake cells and the water penalty values for all cells depending on whether Rano Raraku is
+            dried out or not
 
-        Note: Parameter self.m.droughts_rano_raraku lists droughts with each a list of start and end year.
+        Note: Parameter self.m.droughts_rano_raraku lists droughts. Each enetry is a list of start and end year of the
+            drought at Rano Raraku
 
         Parameters
         ----------
@@ -514,14 +554,16 @@ class Map:
                 self.calc_penalty_g()
         return
 
-
     def init_trees(self):
         """
-        distribute trees on cells according to different scenarios
+        distribute trees on various cells according to different scenarios
+
+        Defined Scenarios
+        =================
         - "uniform" pattern (with equal probability for trees on cells with low enough elevation and slope) or
         - "mosaic" pattern (with decreasing probability for trees with the distance to the closest lake/lake_area
-            to the power of "tree_decrease_lake_distance" and zero probability for cells with too high elevation or slope)
-            The distance to the closest lake/lake_area corresponds to the inverse water penalty $P_w$
+            to the power of "tree_decrease_lake_distance" and 0 probability for cells with too high elevation or slope)
+            The distance to the closest lake/lake_area corresponds to the inverse water penalty P_w
             The exponent given by "tree_decrease_lake_distance" allows for determining the degree to
                 which the tree probability decreases with the penalty:
                 - if exponent==0: prob_trees = equivalent to uniform,
@@ -532,7 +574,7 @@ class Map:
         print("Initialising {} Trees on cells with elevation smaller than {}, slope smaller than {} ".format(
             self.m.n_trees_arrival, self.m.map_tree_pattern_condition["max_el"],
             self.m.map_tree_pattern_condition["max_sl"]) +
-              "and decreasing density with the area-weighted distance to the closest freshwater lake with exponent {}".format(
+              "and decreasing density with the min area-weighted distance to a freshwater lake with exponent {}".format(
                   self.m.map_tree_pattern_condition["tree_decrease_lake_distance"])
               if self.m.map_tree_pattern_condition["tree_decrease_lake_distance"] > 0 else "uniformely distributed")
 
@@ -573,17 +615,16 @@ class Map:
             np.sum(self.trees_map), np.mean(self.trees_map), np.std(self.trees_map)))
         return
 
-
-
     def get_agriculture(self):
         """
-        Assign farming productivity indices to cells
-        given the classification criteria by Puleston et al. 2017 (Figure 4)
+        Assign farming productivity indices to cells given the classification criteria by Puleston et al. (2017)
+            (Figure 4)
 
-        Steps:
-        - Obtain data from Puleston et al. 2017 (Figure 4)
+        Steps
+        =====
+        - Obtain data from Puleston et al. (2017) (Figure 4)
         - Scale data to fit the previously defined grid with length units km
-        - Evaluate farming productivity indices on the midpoints of cells.
+        - Evaluate farming productivity indices on the midpoints of cells from the colors of the figure
         """
         # === Read in data ===
         pulestonMap = plt.imread(self.puleston2017_image_file) * 1 / 255
@@ -595,16 +636,18 @@ class Map:
         #
         # Array of bools where pixels of the image are well-suited
         data_wellSites = (pulestonMap[:, :, 0] < 0.9) * (pulestonMap[:, :, 1] > 0.5) * (pulestonMap[:, :, 1] < 0.8) * (
-                    pulestonMap[:, :, 2] < 0.01)
+                pulestonMap[:, :, 2] < 0.01)
         # Array of bools where pixels of the image are poorly suited.
         # Note: ~ is inversion. Hence a well-suited pixel can not also be poorly suited
-        data_poorSites = (pulestonMap[:, :, 0] < 0.9) * (pulestonMap[:, :, 1] >= 0.8) * (pulestonMap[:, :, 2] < 0.01) * (
-            ~data_wellSites)
+        data_poorSites = (pulestonMap[:, :, 0] < 0.9) * (pulestonMap[:, :, 1] >= 0.8) * (
+                    pulestonMap[:, :, 2] < 0.01) * (
+                             ~data_wellSites)
 
         # === Transform into our grid ===
-        # By comparing the pictures of the google elevation data and Puleston's farming productivity, define the latitude and longitude borders of Puleston's picture
+        # By comparing the pictures of the google elevation data and Puleston's farming productivity, define the
+        # latitude and longitude borders of Puleston's picture
         # This can be adjusted until the data fits roughly.
-        dlonmin, dlatmin, dlonmax, dlatmax = [p-b for p, b in zip(self.puleston_bbox, self.el_bbox)]
+        dlonmin, dlatmin, dlonmax, dlatmax = [p - b for p, b in zip(self.puleston_bbox, self.el_bbox)]
         lonmin, latmin, lonmax, latmax = self.puleston_bbox
 
         # transform pixel to km
@@ -651,7 +694,8 @@ class Map:
         # Get values at midpoints of Easter Island. for both poor and well-suited data.
         well_allowed_map = np.array([f_well(m[0], m[1])[0][0] for m in self.midpoints_map]) >= 0.01
         # Cells that are already well-suited are additionally excluded from being poorly suited.
-        poor_allowed_map = (~(well_allowed_map > 0)) * (np.array([f_poor(m[0], m[1])[0][0] for m in self.midpoints_map]) >= 0.01)
+        poor_allowed_map = (~(well_allowed_map > 0)) * (
+                    np.array([f_poor(m[0], m[1])[0][0] for m in self.midpoints_map]) >= 0.01)
 
         # Indices of well-suited and poorly suited cells
         inds_well = np.where(well_allowed_map)[0]
@@ -662,32 +706,39 @@ class Map:
         self.f_pi_c[inds_well] = self.m.f_pi_well
         self.f_pi_c[inds_poor] = self.m.f_pi_poor
 
-
         self.avail_well_gardens = np.zeros_like(well_allowed_map, dtype=np.uint8)
         self.avail_well_gardens[inds_well] = self.n_gardens_percell
         self.avail_poor_gardens = np.zeros_like(poor_allowed_map, dtype=np.uint8)
         self.avail_poor_gardens[inds_poor] = self.n_gardens_percell
-        #sum_well_suited = np.sum(self.well_suited_cells)
-        #sum_poorly_suited = np.sum(self.poorly_suited_cells)
+        # sum_well_suited = np.sum(self.well_suited_cells)
+        # sum_poorly_suited = np.sum(self.poorly_suited_cells)
 
         # ===== Check =======
         area_well_suited_m2 = len(inds_well) * self.n_gardens_percell * self.m.garden_area_m2
         area_poor_suited_m2 = len(inds_poor) * self.n_gardens_percell * self.m.garden_area_m2
-        print("Well Suited Sites: ", len(inds_well)* self.n_gardens_percell , " on ", len(inds_well), " Cells")
-        print("Poor Suited Sites: ", len(inds_poor)* self.n_gardens_percell,  " on ", len(inds_poor), " Cells")
+        print("Well Suited Sites: ", len(inds_well) * self.n_gardens_percell, " on ", len(inds_well), " Cells")
+        print("Poor Suited Sites: ", len(inds_poor) * self.n_gardens_percell, " on ", len(inds_poor), " Cells")
         print("Well suited Area: ", area_well_suited_m2, " or as Fraction: ",
               area_well_suited_m2 / (self.n_triangles_map * self.triangle_area_m2))
-        print("Poorly suited Area: ", area_poor_suited_m2, " or as Fraction: ", area_poor_suited_m2 / (self.n_triangles_map * self.triangle_area_m2))
+        print("Poorly suited Area: ", area_poor_suited_m2, " or as Fraction: ",
+              area_poor_suited_m2 / (self.n_triangles_map * self.triangle_area_m2))
         return
 
 
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
+    """
+    Example:
+    Create a representation grid given some parameters
+    Plot the farming productivity and initial tree densitiy
+    """
+
     from main import Model
     import importlib
-    from .plot_functions.plot_InitialMap import *
+    from plot_functions.plot_InitialMap import *
 
+    # ========== LOAD PARAMETERS ===========
     # Import parameters for sensitivity analysis
     sa_mod = importlib.import_module("params.sa.default")
     print("sa.params_sensitivity: ", sa_mod.params_sensitivity)
@@ -703,15 +754,15 @@ if __name__=="__main__":
 
     # Seed
     seed = 1
+    consts_mod.params_const["gridpoints_x"] = 30
+    consts_mod.params_const["gridpoints_y"] = 20
 
     # === RUN ===
-    m = Model("Map/",  int(seed), consts_mod.params_const, sa_mod.params_sensitivity, scenario_mod.params_scenario)
+    m = Model("Map/", int(seed), consts_mod.params_const, sa_mod.params_sensitivity, scenario_mod.params_scenario)
 
+    # === PLOT ====
     # Plot Map for Farming Productivity Index
-    plot_map(m.map, m.map.f_pi_c*100, r"Farm. Prod. $F_{\rm P}(c)$ [%]", cmap_fp, 0.01, 100, "F_P")
+    plot_map(m.map, m.map.f_pi_c * 100, r"Farm. Prod. $F_{\rm P}(c)$ [%]", cmap_fp, 0.01, 100, "coarseF_P")
 
     # Plot Map for Trees.
-    plot_map(m.map, m.map.trees_map * 1/100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 75, "T")
-
-
-
+    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 75, "coarseT")
