@@ -14,9 +14,11 @@ onerun(){
 }
 
 
-for i in {1..10}; do\
+for i in {11..20}; do\
         echo "Started Run with seed "$i
         onerun $i &
 done
 
 wait
+
+
