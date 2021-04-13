@@ -41,8 +41,11 @@ We considered these parameters as constant and did not vary them.
 | 2.8 (a) | 275.4 (b) | 0 | 300 | 0 | 7.5 | 0 | 300 | 0 | (c) | 0 | (d) |
 
 (a):  (0.5 km)^2 / (pi * rad_raraku^2)
+
 (b): (5 km)^2 / (pi * rad_raraku^2)
+
 (c): ag.t_pref * t_req_pp * ag.p * satisfaction_equ
+
 (d): (1-ag.t_pref) * f_req_pp * ag.p * satisfaction_equ
 
 

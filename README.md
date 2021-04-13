@@ -2,6 +2,10 @@
  An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents on Easter Island
     and their interactions with the natural environment through resource consumption prior to European arrival.
 
+<p align="center">
+  <img src="readme_pics/create_rull_comp_latex.png" width="800">
+</p>
+
 ## Model
 <p align="center">
   <img src="readme_pics/sketch.png" width="800">
