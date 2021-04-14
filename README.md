@@ -24,7 +24,7 @@ First, agents split into two households when their population exceeds a threshol
 Second, failure to harvest a sufficient fraction of the required resources pushes agents to move their settlement.
 Heterogeneous resource availability and other geographic indicators, like elevation or distance to freshwater lakes,
 influence the decision on an agent's new location on the island.
-Thirdly, agents adapt their preference for trees over sweet potatoes in response to a changing environment.
+Third, agents adapt their preference for trees over sweet potatoes in response to a changing environment.
 In summary, the interaction with the natural environment, constrains and shapes settlement and harvest patterns as
 well as the dynamics of the population size of the Easter Island society.
 
