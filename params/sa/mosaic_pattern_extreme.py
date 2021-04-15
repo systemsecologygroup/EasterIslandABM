@@ -19,6 +19,6 @@ params_sensitivity = {
             #"name": "Uniform",  # "Mosaic"
             "max_el": 450,
             "max_sl": 10,
-            "tree_decrease_lake_distance": 0.5  # "Uniform"=0, "Mosaic"=1
+            "tree_decrease_lake_distance": 1.5  # "Uniform"=0, "Mosaic"=1
         }
 }
