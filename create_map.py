@@ -603,7 +603,7 @@ class Map:
                                           )
         # get how often each value (with index in values) was chosen for a tree
         values, counts = np.unique(inds_all_trees, return_counts=True)
-        self.trees_map = np.zeros_like(self.inds_map, dtype=np.int16)
+        self.trees_map = np.zeros_like(self.inds_map, dtype=np.int32)
         self.trees_map[values] = counts
         self.trees_cap = np.copy(self.trees_map)
 
@@ -765,4 +765,4 @@ if __name__ == "__main__":
     plot_map(m.map, m.map.f_pi_c * 100, r"Farm. Prod. $F_{\rm P}(c)$ [%]", cmap_fp, 0.01, 100, "F_P")
 
     # Plot Map for Trees.
-    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 75, "T")
+    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 75, "T_mosaic")
