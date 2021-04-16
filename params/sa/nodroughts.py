@@ -21,6 +21,6 @@ params_sensitivity = {
             "max_sl": 10,
             "tree_decrease_lake_distance": 0  # "Uniform"=0, "Mosaic"=1
         },
-    "droughts_rano_raraku": [[700,701]],
+    "droughts_rano_raraku": [[700,800]],
 
 }
