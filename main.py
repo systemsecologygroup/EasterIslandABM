@@ -90,7 +90,6 @@ class Model:
         self.p_arrival = params_const["p_arrival"]  # population at arrival
         self.time_end = params_const["time_end"]  # end time of the simulation
         self.moving_radius_arrival = params_const["moving_radius_arrival"]    # Radius after arrival in Anakena Beach
-        self.droughts_rano_raraku = params_const["droughts_rano_raraku"]  # Droughts of Rano Raraku: list of droughts with tuple of start and end date
         self.f_pi_well = params_const["f_pi_well"]    # farming productivity index of well-suited cells
         self.f_pi_poor = params_const["f_pi_poor"]    # farming productivity index of poorly suited cells
         self.garden_area_m2 = params_const["garden_area_m2"]    # size of a garden in m^2
@@ -111,6 +110,7 @@ class Model:
         self.time_arrival = params_sensitivity["time_arrival"]  # time of arrival in A.D.
         self.max_p_growth_rate = params_sensitivity["max_p_growth_rate"]
         self.map_tree_pattern_condition = params_sensitivity["map_tree_pattern_condition"]
+        self.droughts_rano_raraku = params_sensitivity["droughts_rano_raraku"]  # Droughts of Rano Raraku: list of droughts with tuple of start and end date
 
         # Params for scenarios: Aggregate, Homogeneous, Constrained, Full
         self.p_split_threshold = params_scenarios["p_split_threshold"]

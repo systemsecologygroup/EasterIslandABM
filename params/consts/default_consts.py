@@ -4,7 +4,6 @@ params_const = {
     "p_arrival": 40,
     "time_end": 1900,
     "moving_radius_arrival": 1,
-    "droughts_rano_raraku": [[800, 1200], [1570, 1720]],
     "f_pi_well": 1,
     "f_pi_poor": 0.05,
     "garden_area_m2": 1000,

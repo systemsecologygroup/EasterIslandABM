@@ -531,7 +531,7 @@ class Map:
         assign freshwater lake cells and the water penalty values for all cells depending on whether Rano Raraku is
             dried out or not
 
-        Note: Parameter self.m.droughts_rano_raraku lists droughts. Each enetry is a list of start and end year of the
+        Note: Parameter self.m.droughts_rano_raraku lists droughts. Each entry is a list of start and end year of the
             drought at Rano Raraku
 
         Parameters
@@ -740,7 +740,7 @@ if __name__ == "__main__":
 
     # ========== LOAD PARAMETERS ===========
     # Import parameters for sensitivity analysis
-    sa_mod = importlib.import_module("params.sa.default")
+    sa_mod = importlib.import_module("params.sa.mosaic_pattern_extreme")
     print("sa.params_sensitivity: ", sa_mod.params_sensitivity)
 
     # Import parameters for scenario
@@ -762,7 +762,7 @@ if __name__ == "__main__":
 
     # === PLOT ====
     # Plot Map for Farming Productivity Index
-    plot_map(m.map, m.map.f_pi_c * 100, r"Farm. Prod. $F_{\rm P}(c)$ [%]", cmap_fp, 0.01, 100, "F_P")
+    plot_map(m.map, m.map.f_pi_c * 100, r"Agric. Prod. $a_{\rm p}(c)$ [%]", cmap_fp, 0.01, 100, "F_P")
 
     # Plot Map for Trees.
-    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 75, "T_mosaic")
+    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 200, "T_mosaic_extreme")
