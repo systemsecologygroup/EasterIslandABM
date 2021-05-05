@@ -279,7 +279,7 @@ class Agent:
 
         Idea and Assumptions
         ====================
-        - Agents prefer a certain geography (low altitude and low slope), proximity to freshwater lakes
+        - Agents prefer a certain orography (low altitude and low slope), proximity to lakes
             (weighted by the area), low population density, as well as large numbers of trees within r_t distance
             and high availability of arable (in particular, well-suited) potential gardens within r_c distance.
         - The penalties, P_{cat}(c), depend logistically on correlated, underlying geographic condition variables
@@ -292,7 +292,7 @@ class Agent:
             $$ P_{tot}(c) =  sum_{cat} alpha_{cat}^{i} * P_{cat}(c) $$
             - The relative weights for cultivation, alpha_cult, and tree, alpha_tree, in the equation above vary for
                 each agent as we additionally scale them with their current tree preference (and then re-normalise).
-            -The other weights (for geography, freshwater proximity, and population density) remain const for all
+            -The other weights (for orography, lake distance, and population density) remain const for all
                 agents.
 
         More detailed calculation
@@ -300,13 +300,13 @@ class Agent:
             The total penalty for a cell is calculated as
             $$ P_{tot}^{i}(c) = sum {cat} alpha_{cat}^{i} * P_{cat} $$
             where cat represents the categories used for the elevation of a cell:
-            - "w" for area weighted proximity for freshwater,
-            - "g" for geography (including elevation and slope)
+            - "ld" for area weighted distance to lakes,
+            - "or" for orography (including elevation and slope)
             - "pd" for population density,
             - "tr" for tree availability,
             - "cu" for availability of well-suited and total gardens,
             The weights alpha are explained in the following:
-            - alpha_w, alpha_pd and alpha_g are constant weights
+            - alpha_ld, alpha_pd and alpha_or are constant weights
             - alpha_tr and alpha_cu are multiplied by the agent's tree preference and then normalised such that sum of
                 all alpha_cat is 1
             The penalties P_cat(c) is assigned for a certain category given the value of the evaluation criteria in the
@@ -314,9 +314,9 @@ class Agent:
                  - The penalty grows logistically with $x$
                     $$ P_{cat}(c) =  \frac{1}{1+exp[-k_x * (x(c) - x_{0.5})]} $$
                  - Here x(c) is the value of an evaluation criteria for cell c in the specific category cat:
-                    - for "g":
-                        P_g= 0.5 * (P_{el} + P_{sl}) with x(c)=el(c) and x(c) = sl(c)
-                    - for "w":
+                    - for "or":
+                        P_or= 0.5 * (P_{el} + P_{sl}) with x(c)=el(c) and x(c) = sl(c)
+                    - for "ld":
                         x(c) = min_{lake} [ d_{lake}^2 / A_{lake} ],
                         where d_{lake} ist the distance and A_{lake} is the area of lakes Raraku, Kau, Aroi
                     - for "pd":
@@ -359,7 +359,7 @@ class Agent:
         p_tot : array of floats between 0 and 1
             the weighted sum of all penalty(-ies) for the corresponding cells
         p_cat : list of arrays of floats between 0 and 1
-            the penalty(-ies) for the corresponding cells in each category (w, g, tr, f, pd)
+            the penalty(-ies) for the corresponding cells in each category (ld, or, tr, f, pd)
         """
         if self.m.gamma == 0:
             # Do not need to calculate the penalties, because they are not taken into account
@@ -372,8 +372,8 @@ class Agent:
 
         # == Calculate each categories penalty ==
 
-        # === Map/Geography Penalty ===
-        p_g = self.m.map.penalty_g[triangle_inds]
+        # === Map/Orography Penalty ===
+        p_or = self.m.map.penalty_or[triangle_inds]
 
         # === Tree Penalty ===
         tr = np.dot(self.m.map.trees_map, circ_inds_trees_arr)
@@ -385,8 +385,8 @@ class Agent:
             (np.sum(circ_inds_cultivation_arr, axis=0) * self.m.map.triangle_area_m2 * 1e-6)
         p_pd = self.m.P_cat(pd, "pd")
 
-        # === Freshwater Penalty ===
-        p_w = self.m.map.penalty_w[triangle_inds]
+        # === Lake distance Penalty ===
+        p_ld = self.m.map.penalty_ld[triangle_inds]
 
         # === Agriculture Penalty ===
         # for poorly and well suited cells
@@ -411,13 +411,13 @@ class Agent:
         alpha_cu = self.m.alpha["cu"] * (1 - self.t_pref) / eta
 
         # linear combination of all weighted penalties for all cells of triangle_inds
-        p_tot = (self.m.alpha["w"] * p_w +
+        p_tot = (self.m.alpha["ld"] * p_ld +
                  alpha_tr * p_tr +
                  self.m.alpha["pd"] * p_pd +
                  alpha_cu * p_cu +
-                 self.m.alpha["g"] * p_g
+                 self.m.alpha["or"] * p_or
                  )
-        p_cat = [p_w, p_g, p_tr, p_cu, p_pd]
+        p_cat = [p_ld, p_or, p_tr, p_cu, p_pd]
         return p_tot, p_cat
 
     def move(self, within_inds):
@@ -437,8 +437,8 @@ class Agent:
         Instead it is a process e.g. limited by uncertainty and lack of knowledge and thus based on heuristics rather
          than computation.
         The probabilities depend on a penalty evaluation described in detail in process calc_penalty.
-        In a nutshell, we assume that agents prefer a certain geography (low altitude and low slope), proximity to
-        freshwater lakes, low population density, as well as large numbers of trees and high availability of arable
+        In a nutshell, we assume that agents prefer a certain orography (low altitude and low slope), proximity to
+        lakes, low population density, as well as large numbers of trees and high availability of arable
         (in particular, well-suited) potential gardens in the local surrounding.
         Note that these preferences, are not related to the agent survival or its resource harvest.
         For each of these categories (cat) the agent defines a categorical penalty, P_{cat}(c), and evaluates all cells
@@ -471,7 +471,7 @@ class Agent:
         self.arability_cultivated_gardens = np.array([])
 
         # === Penalty Evaluation ===
-        # local penalties could be used for plotting, see below:  _ = [p_w, p_g, p_tr, p_cu, p_pd]
+        # local penalties could be used for plotting, see below:  _ = [p_ld, p_or, p_tr, p_cu, p_pd]
         p_tot, _ = self.calc_penalty(within_inds)
 
         # === Probabilities ===

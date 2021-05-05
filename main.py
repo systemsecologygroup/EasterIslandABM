@@ -285,7 +285,7 @@ class Model:
         Parameters
         --------
         cat : string
-            can be one of "w", "pd", "g", "tr", "cu"
+            can be one of "ld", "pd", "or", "tr", "cu"
             if cat is "tr" or "cu", then kwargs needs to have "ag": kwargs["ag"] = object of class Agent
         x : array of floats
             values of the evaluation criteria for each cell
@@ -306,7 +306,7 @@ class Model:
             # calculate the tree or cultivation 99% evaluation threshold.
             x99 = self.evaluation_thresholds[cat + "99"](kwargs["ag"], self)
         else:
-            # read the water, geography or population density 99% evaluation threshold
+            # read the lake distance, orographic or population density 99% evaluation threshold
             x99 = self.evaluation_thresholds[cat + "99"]
         # read the 1% evaluation threshold
         x01 = self.evaluation_thresholds[cat + "01"]

@@ -17,8 +17,8 @@ params_const = {
     "satisfaction_equ": 0.68844221,  # Puleston et al 2017
     "evaluation_thresholds":   # moving_evaluation_thresholds
         {
-            "w01": 0.5 ** 2 / (np.pi * 0.170 ** 2),  # Water: 1% penalty    (0.5km)^2 / (pi * rad_raraku^2)
-            "w99": 5.0 ** 2 / (np.pi * 0.170 ** 2),  # Water: 99% penalty   (5km)^2 / (pi * rad_raraku^2)
+            "ld01": 0.5 ** 2 / (np.pi * 0.170 ** 2),  # Water: 1% penalty    (0.5km)^2 / (pi * rad_raraku^2)
+            "ld99": 5.0 ** 2 / (np.pi * 0.170 ** 2),  # Water: 99% penalty   (5km)^2 / (pi * rad_raraku^2)
             "el01": 0,  # Elevation: 1% penalty     [m] prefer low elevation
             "el99": 300,  # Elevation: 99% penalty     [m] avoid 300-500m elevation
             "sl01": 0,  # Slope: 1% penalty     [degree] prefer no slope
@@ -33,8 +33,8 @@ params_const = {
         },
     "alpha":
         {
-            "w": 0.2,
-            "g": 0.2,
+            "ld": 0.2,
+            "or": 0.2,
             "pd": 0.2,
             "tr": 0.2,
             "cu": 0.2

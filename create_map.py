@@ -28,7 +28,7 @@ class Map:
         - A cell has the following constant properties:
             - elevation
             - slope
-            - corresponding geography penalty.
+            - corresponding orographic penalty.
             - midpoint
             - Area
             - arability index
@@ -37,7 +37,7 @@ class Map:
 
         - A cell has additionally dynamic properties:
             - trees
-            - smallest area-weighted distance to freshwater lake (depending on droughts)
+            - smallest area-weighted distance to lake (depending on droughts)
             - population
             - number of trees cleared
             - number of cultivated gardens
@@ -45,7 +45,7 @@ class Map:
         - Additionally a cell can be:
             - on land or ocean
             - the special cell containing Anakena beach (the landing spot of the Rapa Nui),
-            - part of a freshwater lake
+            - part of a lake
             - a coastal cell
 
     Implementation details
@@ -71,8 +71,8 @@ class Map:
         Dynamic Variables
         =================
         - water_cells_map : indices of cells containing water
-        - penalty_w : Penalty [0,1] for each cell depending on the smallest area-weighted distance to any freshwater
-                lake, which depends on whether Rano Raraku is dried out.
+        - penalty_ld : Penalty [0,1] for each cell depending on the smallest area-weighted distance to any lake,
+            which depends on whether Rano Raraku is dried out.
         - cultivated_gardens : dynamic number of cultivated gardens by agents in each cell
         - population_size : population in each cell
         - tree_clearance : number of cleared trees in each cell
@@ -102,9 +102,9 @@ class Map:
         - calculate the distance matrix of all land cells
         - determine cells that are at the coast and the distance of all land cells to the nearest coast.
         - determine cell of Anakena Beach and the cells within the initial moving radius
-        - get water cells for the Lakes Rano Aroi, Kau and Raraku and determine the cells, water penalties and distance
-                to water in the periods when Raraku is dried out and when it is not.
-        - calculate penalty of elevation and slope and combine them to geography penalty
+        - get water cells for the Lakes Rano Aroi, Kau and Raraku and determine the cells, lake distance penalties and
+            distance to water in the periods when Raraku is dried out and when it is not.
+        - calculate penalty of elevation and slope and combine them to orographic penalty
         - get the arability indices and the amount of available cultivating gardens in each cell
         - distribute trees on the island as the tree carrying capacity
         - Initialise arrays for storing the dynamic attributes of Easter Island.
@@ -144,8 +144,8 @@ class Map:
         self.avail_poor_gardens = None
 
         # Dynamic:
-        self.water_cells_map = None  # The current indices of land cells with freshwater on them
-        self.penalty_w = None  # The current water penalty of land cells
+        self.water_cells_map = None  # The current indices of land cells with water on them
+        self.penalty_ld = None  # The current lake distance penalty of land cells
         self.cultivated_gardens = None
         self.pop_cell = None
         self.tree_clearance = None
@@ -168,19 +168,19 @@ class Map:
         self.n_gardens_percell = None  # Number of gardens per cell (rounded down)
         self.coast_triangle_inds = None  # Indices of cells at the coast
         self.dist_to_coast_map = None  # Distance of all land cells to the nearest coast
-        # Pre-defined cells containing freshwater lakes
+        # Pre-defined cells containing lakes
         self.water_cells_map_nodrought = None  # The indices of land cells covering Rano aroi, kau and raraku
         self.water_cells_map_drought = None  # The indices of land cells covering Rano aroi and kau
-        self.penalty_w_nodrought = None  # Penalties of land cells covering Rano aroi, kau and raraku
-        self.penalty_w_drought = None  # Penalties of land cells covering Rano aroi and kau
-        self.dist_water_map = None  # Distance of all land cells to closest freshwater lakes rano aroi, kau and raraku
+        self.penalty_ld_nodrought = None  # Penalties of land cells covering Rano aroi, kau and raraku
+        self.penalty_ld_drought = None  # Penalties of land cells covering Rano aroi and kau
+        self.dist_water_map = None  # Distance of all land cells to closest lakes rano aroi, kau and raraku
         # distmatrix_map = None  # Distance matrix of all land cells;
         # Anakena Beach
         self.anakena_ind = None  # cell of all triangles index of anakena beach
         self.anakena_ind_map = None  # # land cell index of anakena beach
         self.circ_inds_anakena = None  # indices of cells within the initial moving radius of anakena beach
         # Geography penalty
-        self.penalty_g = None  # geographic Penalty
+        self.penalty_or = None  # geographic Penalty
         # Matrix of cells within r_T and r_F distances.
         self.circ_inds_trees = None  # square boolean matrix for all land cells: Where distance < r_T of the cell
         self.circ_inds_cultivation = None  # square boolean matrix for all land cells: Where distance < r_F of the cell
@@ -205,26 +205,26 @@ class Map:
         anakena_coords = (-27.07327778, -109.32305556)
         self.get_anakena_info(distmatrix_map, anakena_coords)
 
-        # === Calc Geography Penalty ===
-        self.penalty_g = np.zeros(self.n_triangles_map, dtype=np.float)
-        self.calc_penalty_g()  # calculate the static penalty of geography
+        # === Calc Orography Penalty ===
+        self.penalty_or = np.zeros(self.n_triangles_map, dtype=np.float)
+        self.calc_penalty_or()  # calculate the static penalty of geography
 
-        # === Get Freshwater lakes ===
-        # Coordinates of Freshwater sources
+        # === Get lakes ===
+        # Coordinates of lakes
         raraku = {"midpoint": [-27.121944, -109.2886111], "Radius": 170e-3,
                   "area": np.pi * (170*1e-3) ** 2}  # Radius in km
         kau = {"midpoint": [-27.186111, -109.4352778], "Radius": 506e-3, "area": np.pi * (506*1e-3) ** 2}  # rad in km
         aroi = {"midpoint": [-27.09361111, -109.373888], "Radius": 75e-3, "area": np.pi * (75*1e-3) ** 2}  # rad in km
-        # calculate which cells have freshwater in two scenarios: Drought and No Drought of Rano Raraku
+        # calculate which cells have water in two scenarios: Drought and No Drought of Rano Raraku
         self.water_cells_map_nodrought, area_corresp_lake_nodrought = self.setup_freshwater_lakes(distmatrix_map,
                                                                                                   [raraku, kau, aroi])
         self.water_cells_map_drought, area_corresp_lake_drought = self.setup_freshwater_lakes(distmatrix_map,
                                                                                               [kau, aroi])
         # For both scenarios (drought/nodrought) calculate the penalty for all cells
-        self.penalty_w_nodrought, self.dist_water_map = self.calc_penalty_w(distmatrix_map,
+        self.penalty_ld_nodrought, self.dist_water_map = self.calc_penalty_ld(distmatrix_map,
                                                                             self.water_cells_map_nodrought,
                                                                             area_corresp_lake_nodrought)
-        self.penalty_w_drought, _ = self.calc_penalty_w(distmatrix_map, self.water_cells_map_drought,
+        self.penalty_ld_drought, _ = self.calc_penalty_ld(distmatrix_map, self.water_cells_map_drought,
                                                         area_corresp_lake_drought)
 
         # === Calc Resource Access ===
@@ -247,7 +247,7 @@ class Map:
         self.tree_clearance = np.zeros_like(self.inds_map, dtype=np.uint64)
         self.cultivated_gardens = np.zeros_like(self.inds_map, dtype=np.uint8)
         self.water_cells_map = np.copy(self.water_cells_map_nodrought)
-        self.penalty_w = self.penalty_w_nodrought
+        self.penalty_ld = self.penalty_ld_nodrought
 
         return
 
@@ -441,15 +441,15 @@ class Map:
             self.triangle_area_m2, self.area_map_m2, self.n_gardens_percell))
         return
 
-    def calc_penalty_g(self):
+    def calc_penalty_or(self):
         """
-        calculate penalty of elevation and slope and combine them to geography penalty P_g
+        calculate penalty of elevation and slope and combine them to orographic penalty P_or
         """
         penalty_el = self.m.P_cat(self.el_map, "el")
         penalty_sl = self.m.P_cat(self.sl_map, "sl")
-        self.penalty_g = 0.5 * (penalty_sl + penalty_el)
+        self.penalty_or = 0.5 * (penalty_sl + penalty_el)
         # For cells with freshwater, set geography penalty to infinite
-        self.penalty_g[self.water_cells_map] = 1e6
+        self.penalty_or[self.water_cells_map] = 1e6
         return
 
     def setup_freshwater_lakes(self, distmatrix_map, lakes):
@@ -488,12 +488,12 @@ class Map:
         water_cells_map = np.array(water_cells_map)
         return water_cells_map, area_corresp_lake
 
-    def calc_penalty_w(self, distmatrix_map, water_cells_map, area_corresp_lake):
+    def calc_penalty_ld(self, distmatrix_map, water_cells_map, area_corresp_lake):
         """
-        Calculate water penalty P_w
+        Calculate water penalty P_ld
 
         Using evaluation variable:
-        w = min_{lake l}  d_{l}**2 / A_l,
+        ld = min_{lake l}  d_{l}**2 / A_l,
         where d is the distance to the lake l and A is the area of that lake
         and the given thresholds w01 and w99.
 
@@ -507,8 +507,8 @@ class Map:
 
         Returns
         -------
-        penalty_w : array of floats
-            water penalty for each cell
+        penalty_ld : array of floats
+            lake distance penalty for each cell
         min_distance_to_water : array of floats
             min distance to water
         """
@@ -518,18 +518,18 @@ class Map:
         # Note following line: Casting to divide each row separately
         weighted_squ_distance_to_water = distances_to_water ** 2 / np.array(area_corresp_lake)[:, None]
         # Take the minimum of the weighted distances to any of the cells containing water
-        w_evaluation = np.min(weighted_squ_distance_to_water, axis=0)
+        or_evaluation = np.min(weighted_squ_distance_to_water, axis=0)
         # k_w = self.m(self.m.w01, self.m.w99)
         # Calculate penalty from that
-        penalty_w = self.m.P_cat(w_evaluation, "w")
+        penalty_ld = self.m.P_cat(or_evaluation, "ld")
 
         # print("Water Penalties Mean: ", "%.4f" % (np.mean(P_W)))
-        return penalty_w, np.min(distances_to_water, axis=0).clip(1e-10)
+        return penalty_ld, np.min(distances_to_water, axis=0).clip(1e-10)
 
     def check_drought(self, t):
         """
-        assign freshwater lake cells and the water penalty values for all cells depending on whether Rano Raraku is
-            dried out or not
+        assign freshwater lake cells and the lake distance penalty values for all cells depending on whether Rano Raraku
+            is dried out or not
 
         Note: Parameter self.m.droughts_rano_raraku lists droughts. Each entry is a list of start and end year of the
             drought at Rano Raraku
@@ -542,16 +542,16 @@ class Map:
         for drought in self.m.droughts_rano_raraku:
             if t == drought[0]:
                 print("beginning drought in Raraku, t=", t)
-                self.penalty_w = self.penalty_w_drought
+                self.penalty_ld = self.penalty_ld_drought
                 self.water_cells_map = self.water_cells_map_drought
-                # need to calculate geography penalty again because rano raraku cells are dry now.
-                self.calc_penalty_g()
+                # need to calculate orographic penalty again because rano raraku cells are dry now.
+                self.calc_penalty_or()
             if t == drought[1]:
                 # end drought:
                 print("ending drought in Raraku, t=", t)
-                self.penalty_w = self.penalty_w_nodrought
+                self.penalty_ld = self.penalty_ld_nodrought
                 self.water_cells_map = self.water_cells_map_nodrought
-                self.calc_penalty_g()
+                self.calc_penalty_or()
         return
 
     def init_trees(self):
@@ -563,7 +563,7 @@ class Map:
         - "uniform" pattern (with equal probability for trees on cells with low enough elevation and slope) or
         - "mosaic" pattern (with decreasing probability for trees with the distance to the closest lake/lake_area
             to the power of "tree_decrease_lake_distance" and 0 probability for cells with too high elevation or slope)
-            The distance to the closest lake/lake_area corresponds to the inverse water penalty P_w
+            The distance to the closest lake/lake_area corresponds to the inverse lake distance penalty P_ld
             The exponent given by "tree_decrease_lake_distance" allows for determining the degree to
                 which the tree probability decreases with the penalty:
                 - if exponent==0: prob_trees = equivalent to uniform,
@@ -574,7 +574,7 @@ class Map:
         print("Initialising {} Trees on cells with elevation smaller than {}, slope smaller than {} ".format(
             self.m.n_trees_arrival, self.m.map_tree_pattern_condition["max_el"],
             self.m.map_tree_pattern_condition["max_sl"]) +
-              "and decreasing density with the min area-weighted distance to a freshwater lake with exponent {}".format(
+              "and decreasing density with the min area-weighted distance to a lake with exponent {}".format(
                   self.m.map_tree_pattern_condition["tree_decrease_lake_distance"])
               if self.m.map_tree_pattern_condition["tree_decrease_lake_distance"] > 0 else "uniformely distributed")
 
@@ -586,10 +586,10 @@ class Map:
         prob_trees[self.water_cells_map_drought] = 0
         # if tree_decrease_lake_distance == 0 : "Uniform Pattern"
         # if tree_decrease_lake_distance == 1 : "Mosaic Pattern"
-        # penalty_w_nodrought = min_lake ( distance_lake^2 / area_lake )
+        # penalty_ld_nodrought = min_lake ( distance_lake^2 / area_lake )
         exponent = self.m.map_tree_pattern_condition["tree_decrease_lake_distance"]
         if not exponent == 0:
-            prob_trees = 1 / self.penalty_w_nodrought ** exponent
+            prob_trees = 1 / self.penalty_ld_nodrought ** exponent
         # Set prob to zero if slope/elevation are too high
         prob_trees[np.where(self.el_map > max_el)] = 0.
         prob_trees[np.where(self.sl_map > max_sl)] = 0.

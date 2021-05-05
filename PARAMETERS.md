@@ -34,7 +34,7 @@ They are stored in file
 | droughts_rano_raraku | [[800, 1200], [1570, 1720]] | start and end years (A.D:) of droughts at Rano Raraku |
 | map_tree_pattern_condition | max_el: 450 | maximum elevation for trees in a cell |
 |  | max_sl: 10 | maximum slope for trees in a cell |
-|  | tree_decrease_lake_distance: 0 | decrease of tree density with area-weighted distance to freshwater lakes. (0 means uniform distribution, >0 clustered trees around the lakes) |
+|  | tree_decrease_lake_distance: 0 | decrease of tree density with area-weighted distance to lakes. (0 means uniform distribution, >0 clustered trees around the lakes) |
 
 
 ## Constant Parameters
@@ -79,13 +79,13 @@ increases with squared distance to a lake (divided by the lake area) | increases
 
 Alpha
 
-| Freshwater distance w | Geography g | Population Density pd | Availability of Trees tr | Availability of highly arable gardens cu | 
+| Lake distance ld | Orography or | Population Density pd | Availability of Trees tr | Availability of highly arable gardens cu | 
  |-----|-----|-----|-----|-----|
 | 0.2 | 0.2 | 0.2 | 0.2 | 0.2 |
 
 #### Penalty thresholds for different location preferences and their evaluation variables
 
-| w01 | w99 | el01 | el99 | sl01 | sl99 | pd01 | pd99 | tr01 | tr99 | cu01 | cu99 |
+| ld01 | ld99 | el01 | el99 | sl01 | sl99 | pd01 | pd99 | tr01 | tr99 | cu01 | cu99 |
 |-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
 | 2.8 (a) | 275.4 (b) | 0 | 300 | 0 | 7.5 | 0 | 300 | 0 | (c) | 0 | (d) |
 
