@@ -1,12 +1,12 @@
 
 
-# Parameter choices 
-###to reproduce the results in the *Steiglechner and Merico (2021)* (submitted to *Rull and Stevenson (2021)*)
+# Default parameter choices 
+to reproduce the results in the associated publication.
 
 ## Parameters for differrent scenarios
 In folder ```params/scenarios/```
 
-These parameters determine the specific scenario in our results:
+We consider three scenarios:
 - Unconstrained
 - Partly Constrained
 - Fully Constrained

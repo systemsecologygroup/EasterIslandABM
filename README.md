@@ -1,5 +1,5 @@
 # Easter Island ABM
- An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents and their interactions with the natural environment through resource consumption on Easter Island prior to European arrival.
+An Agent-Based Model that simulates the spatial and temporal dynamics of household agents on Easter Island and their interactions with a spatially explicit and realistic natural environment prior to European arrival.
 
 Associated publication: [[Steiglechner and Merico (2021)]](#0) (submitted)
 
