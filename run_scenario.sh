@@ -8,7 +8,7 @@ scenario_run(){
   ./run_ensemble.sh $1 $2
 }
 
-scenarios="full"
+scenarios="unconstrained partlyconstrained fullyconstrained"
 
 for sc in $scenarios; do\
   echo "Starting runs for the following settings with different seeds"

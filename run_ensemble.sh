@@ -13,6 +13,7 @@ onerun(){
         rm -rf $folder
 }
 
+echo "Run 20 simulations"
 
 for i in {1..10}; do\
         echo "Started Run with seed "$i

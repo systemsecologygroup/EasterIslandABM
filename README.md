@@ -1,11 +1,13 @@
 # Easter Island ABM
  An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents and their interactions with the natural environment through resource consumption on Easter Island prior to European arrival.
 
+Associated publication: [[Steiglechner and Merico (2021)]](#0) (submitted)
+
 <p align="center">
   <img src="readme_pics/create_rull_comp_latex.png" width="600">
 </p>
 
- For a video sample of the output of this model see `readme_pics/default_full_seed1.mp4
+ For a video sample of the output of this model see `readme_pics/default_full_seed1.mp4`
 
 ## Model
 ### Motivation:
@@ -64,18 +66,18 @@ The created folder `data/` with a subfolder denoting the chosen options specific
 - folder ```used_files``` that copies the python scripts used for this run
 - netcdf file  ```dynamic_env.ncdf``` that includes (among others) number of individuals, trees, gardens in each environmental cell over all time steps.
 - csv file  ```ags_stats.csv``` that includes for every time and every agent (existing at that time) the agent's location, its population size, its resource preference of harvesting trees over cultivating sweet potatoes, and the cells of its cultivated gardens.
-- netcdf file  ```aggregate_values.ncdf`` includes further information aggregated over all agents in every time step (e.g.\ their mean satisfaction)
-- netcdf file  ```const_map_values.ncdf`` includes constant features of the environment (like triangle positions, elevation, slope, arability index) of all cells.
+- netcdf file  ```aggregate_values.ncdf``` includes further information aggregated over all agents in every time step (e.g.\ their mean satisfaction)
+- netcdf file  ```const_map_values.ncdf``` includes constant features of the environment (like triangle positions, elevation, slope, arability index) of all cells.
 
 ### Ensemble Runs
-Alternatively, to get the main results for all three scenarios `unconstrained,  `partly constrained, or `fully constrained with multiple seeds as used for our results section, 
+Alternatively, to get the main results for all three scenarios `unconstrained,  `partlyconstrained, or `fullyconstrained with multiple seeds as used for our results section, 
 Run the following command e.g.\ on a cluster
 ```
 ./run_scenarios.sh default
 ```
 and unpack later on local machine
 ```
-./unpack.sh data/packed/default_fully_seed
+./unpack.sh data/packed/default_fullyconstrained_seed
 ```
 
 
@@ -96,9 +98,9 @@ and unpack later on local machine
     - ```puleston2017_original.jpg```
 - ```./params```
     This folder contains python scripts that define dictionaries of parameters for 
-    - the constant parameters, 
-    - the ones corresponding to the sensitivity analysis in the publication and
-    - the scenarios presented in the main result section.
+    - several constant properties, 
+    - several properties of the model that we used for a sensitivity analysis in the associated publication and
+    - properties used in three model formulations presented in the main result section of the associated publication.
     
 #### For Automated Ensemble Simulations
 - ```run_scenarios.sh```
@@ -124,6 +126,8 @@ The code was tested with the following python packages:
 
 
 ## References and Further Reading
+<a id="0">[0]</a>
+Steiglechner P, Merico A (2021): Easter Island spatial population patterns in an Agent-Based Model of human-resource interaction (working title). Manuscript submitted for publication.
 
 <a id="1">[1]</a>
 Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th edn. Rowman & Littlefield, Maryland, USA
