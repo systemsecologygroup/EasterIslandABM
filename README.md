@@ -5,7 +5,7 @@
   <img src="readme_pics/create_rull_comp_latex.png" width="600">
 </p>
 
-![Output sample](src=readme_pics/default_full_seed1.mp4)
+ For a video sample of the output of this model see `readme_pics/default_full_seed1.mp4
 
 ## Model
 ### Motivation:
