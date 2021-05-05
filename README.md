@@ -5,7 +5,7 @@
   <img src="readme_pics/create_rull_comp_latex.png" width="600">
 </p>
 
-Compare with [[Rull (2020)]](#3) (Figure 9) 
+![Output sample](src=readme_pics/default_full_seed1.mp4)
 
 ## Model
 ### Motivation:
