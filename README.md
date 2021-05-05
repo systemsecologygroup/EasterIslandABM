@@ -1,107 +1,81 @@
 # Easter Island ABM
- An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents on Easter Island
-    and their interactions with the natural environment through resource consumption prior to European arrival.
+ An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents and their interactions with the natural environment through resource consumption on Easter Island prior to European arrival.
 
 <p align="center">
   <img src="readme_pics/create_rull_comp_latex.png" width="800">
 </p>
 
 ## Model
-<p align="center">
-  <img src="readme_pics/sketch.png" width="800">
-</p>
 
 ###### Short Summary:   
 The ABM consists of multiple agents situated on a realistic representation of Easter Island's environment.
-The environment is encoded on a 2D discretised map with heterogeneous geographic and
-biological features. Agents represent households, who rely on two limited resources provided by this environment:
-(1) Non-renewable palm trees (or derivate products like firewood, canoes or sugary sap e.g. [Bahn2017])
-and (2) sweet potatoes. Agents obtain these resources by cutting trees and cultivating arable farming sites in
-their near surroundings. Thereby, they change their local environment. The household's population growth or
-decline consequently depends on the success of this resource acquisition.
-We define three adaptation mechanisms which we implement as heuristic rules for the agents:
-First, agents split into two households when their population exceeds a threshold.
-Second, failure to harvest a sufficient fraction of the required resources pushes agents to move their settlement.
-Heterogeneous resource availability and other geographic indicators, like elevation or distance to freshwater lakes,
-influence the decision on an agent's new location on the island.
-Third, agents adapt their preference for trees over sweet potatoes in response to a changing environment.
-In summary, the interaction with the natural environment, constrains and shapes settlement and harvest patterns as
-well as the dynamics of the population size of the Easter Island society.
+T The environment is encoded on a 2D discretised map with real geographic and orographic features. Agents are represented by households, which comprise a variable number of individuals. Households rely on two limited resources: (1) palm trees, considered here a primary, non-renewable resource for essential tools, firewood, building material, sugary sap, etc. and (2) cultivated sweet potatoes, which constituted an important source of carbohydrates and water on the island. Households use these resources by cutting trees and by creating gardens (i.e., cultivating cleared, arable land available in their immediate surrounding). The growth or decline of households depends on the success with which they can obtain these resources. Households adapt to the changing environment and to the growing population in three ways. First, a household splits into two when it becomes too large and one of the two relocates in a different place. Second, households relocate when resources become scarce in their current location. Their moving behaviour is determined by resource availability and certain features of the environment, including elevation and distance from the three major lakes (Rano Kau, Rano Raraku, and Rano Aroi). Third, in a response to the declining number of trees, households adapt their resource preference from a resource combination dominated by non-renewable trees to a combination dominated by stable cultivation of sweet potatoes.
+    In summary, the interaction between agents and the natural environment and the adaptive response of agents, shape settlement patterns and population dynamics on the island.
 
-###### Time in the Model
-The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to
-        Anakena Beach in the North part of the island in the year t_0 = 800 A.D., following [Bahn2017].
-All agents are then updated in yearly time steps up to 1900 A.D..
-With the growing impacts through voyagers arriving on Easter Island in the 18th and 19th
-        centuries, deportations of inhabitants as slaves and introduction of new diseases, the prehistoric
-        phase and the island's isolated status end.
-
-### Environment
-Discretised representation of the map of Easter Island.
-Each cell contains information about geographic properties like elevation or freshwater proximity 
-and resource related variables like availability of trees, farming productivity of the soil and available space 
-for setting up gardens.
-
+In accordance with suggestions by Bahn and Flenley (2017) [[1]](#1), the simulations start with two households (comprising a total population of 40 individuals) positioned in the proximity of Anakena Beach in the northern part of the island in the year 800 A.D., thus, mimicking the arrival of the first Polynesian settlers. Model updates occur asynchronously on time steps of one year until 1800 A.D..  
+    The model does not include processes such as spreading of diseases or slavery that were introduced after the discovery of the island by European voyagers in the 18th century. 
 
 <p align="center">
-  <img src="readme_pics/F_P.png" width="300">
-  <img src="readme_pics/Trees.png" width="300">
+  <img src="readme_pics/sketch_standalone.png" width="800">
 </p>
 
-##### Some crucial properties for each cell
-- constant farming productivity index (left panel of Figure)
-- number of available well and poorly suited gardens
-- number of available trees (right panel at time 800 A.D.)
+### Environment
+The environment is subdivided into Delaunay triangular cells. Cells are characterised by fixed orographic and geographic features (area, elevation, slope, and arability index (see panel B)) and variable amounts of resources (number of trees (see panel A) and number of gardens).
+
+<p align="center">
+  <img src="readme_pics/Trees.png" width="300">
+  <img src="readme_pics/F_P.png" width="300">
+Features of the environment related to the two resources: (A) initial distribution of trees and (B) cell arability in % yield of sweet potatoes. At the beginning of the simulation (800 A.D.), a total of 16 million trees are uniformly distributed on the map, covering 85% of the island. The classification of cells into 'well-suited' (100% yield), 'poorly suited' (5% yield), and 'not suited' (0% yield) for cultivating sweet potatoes is based on the agriculturally viable zones identified by Puleston et al. (2017) [[2]](#2).
+</p>
 
 
 ### Agents
-Household agents located on the island with a specific population size, resource related attributes and an update procedure for each year.
-
-###### State variables of the agent entity 
-- Location (x, y, cell)
-- Populatoin size p
-- preference, t_pref, of resources tree over farming produce
-- farming yield from occupied gardens and their farming productivity
-- cut trees in the current year
-- satisfaction with resource harvest.
+Agents are characterised by their locations (dots), their population size (dot size), and their resource preference (dot colour). The agent's surroundings (concentric circles) are defined by the tree harvest radius r_T and the cultivation radius r_C for cultivating gardens. 
 
 
 ## How to run the model
-### Single Run
-Run the main python script and provide the corresponding, predefined parameter files in folder ```./params```.
+
+Run
+```
+python main.py default fully 1
+```
+Each simulation run will take about 5-10 minutes on a standard computer. 
+
+The arguments are described in the following:
+
+### Scenario
+The additional arguments to the main python script provide the corresponding, predefined parameter files in folder ```./params```.
 These files contain dictionaries with the parameters for each specific experiment and scenario. 
 
 - the first additional argument is the filename of parameter values for the different experiments tested in the 
     sensitivity analysis (folder params/sa/...):
         e.g. use ```default``` for /params/sa/default
-- the second additional argument is the filename of parameter values for the specific scenario `homogeneous`, 
-    `constrained`, or `full` (folder params/scenarios/...):
-        e.g. use ```full``` for /params/sa/full
+- the second additional argument is the filename of parameter values for the specific scenario `unconstrained`, 
+    `partly`, or `fully` (folder params/scenarios/...):
+        e.g. use ```fully``` for /params/sa/fully
 - the third additional argument denotes the (integer) seed value used.
 
 For a detailed description of the parameters, look at [Parameters](PARAMETERS.md).
-```
-python main.py default full 1
-```
-Each simulation run will take about 5-10 minutes on a standard computer. 
+
 
 ### Ensemble Runs
-Alternatively, to get the main results for all three scenarios `homogeneous', 
-    `constrained', or `full' with multiple seeds as used for our results section, 
+Alternatively, to get the main results for all three scenarios `unconstrained',  `partly constrained', or `fully constrained' with multiple seeds as used for our results section, 
 Run the following command e.g.\ on a cluster
 ```
 ./run_scenarios.sh default
 ```
 and unpack later on local machine
 ```
-./unpack.sh data/packed/default_full_seed
+./unpack.sh data/packed/default_fully_seed
 ```
 Run the analysis like 
 ```
 cd plot_functions
 ./plot_analysis.sh default 10
 ```
-("default" is the model experiment/sensitivity setting, "10" is the y_max of the island-wide population axis):
+("default" is the model experiment/sensitivity setting, "10" is the y_max of the island-wide population axis).
+
+
 
 ## Files
 - ```agents.py ```
@@ -118,7 +92,7 @@ cd plot_functions
     - ```slope_EI.tif```
     - ```puleston2017_original.jpg```
 - ```./plot_functions```
-    This folder contains some scripts to reproduce the figures in the publication.
+    This folder contains some scripts to reproduce the plots in the main publication.
 - ```./params```
     This folder contains python scripts that define dictionaries of parameters for 
     - the constant parameters, 
@@ -146,16 +120,17 @@ The code was tested with the following python packages:
 | pathlib | 1.0.1 |
 
 
-## Further Reading
+## References and Further Reading
 
-[Bahn2017]: Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th
-edn. Rowman & Littlefield, Maryland, USA
+<a id="1">[1]</a>
+Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th edn. Rowman & Littlefield, Maryland, USA
 
-[Puleston2017]: Puleston CO, Ladefoged TN, Haoa S, Chadwick OA, Vitousek PM, Stevenson CM
-(2017) Rain, sun, soil, and sweat: A consideration of population limits on Rapa Nui (Easter Island) before European contact. Frontiers in Ecology and Evolution
-DOI 10.3389/fevo.2017.00069
+<a id="2">[2]</a>
+Puleston CO, Ladefoged TN, Haoa S, Chadwick OA, Vitousek PM, Stevenson CM
+(2017) Rain, sun, soil, and sweat: A consideration of population limits on Rapa Nui (Easter Island) before European contact. Frontiers in Ecology and Evolution DOI 10.3389/fevo.2017.00069
 
-[Rull2020]: Rull, V. (2020), The deforestation of Easter Island. Biol Rev, 95: 124-141. https://doi.org/10.1111/brv.12556
+<a id="3">[3]</a>
+Rull, V. (2020), The deforestation of Easter Island. Biol Rev, 95: 124-141. https://doi.org/10.1111/brv.12556
 
 # Author
 Peter Steiglechner, April 2021. [Orcid Link](https://orcid.org/0000-0002-1937-5983)

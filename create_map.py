@@ -31,7 +31,7 @@ class Map:
             - corresponding geography penalty.
             - midpoint
             - Area
-            - farming productivity index
+            - arability index
             - number of available well and poorly suited gardens
             - tree carrying capacity (or trees at time of arrival)
 
@@ -40,7 +40,7 @@ class Map:
             - smallest area-weighted distance to freshwater lake (depending on droughts)
             - population
             - number of trees cleared
-            - number of occupied gardens
+            - number of cultivated gardens
 
         - Additionally a cell can be:
             - on land or ocean
@@ -58,8 +58,8 @@ class Map:
             - triangles : the indices of the three corner points for each triangular cell
             - mask : denoting those triangles not on the ocean, i.e. where the midpoint has a non-zero elevation
         - el_map : elevation on each cell in m above sea level
-        - sl_map : slope of the territorry on each cell in degrees
-        - f_pi_c : the farming productivity index (f_pi_well for well suited and f_pi_poor for poorly suited, 0 else)
+        - sl_map : slope of the territory on each cell in degrees
+        - arability_c : arability index (arability_well for well suited and arability_poor for poorly suited, 0 else)
                 for each cell
         - trees_cap : number of trees in each cell before arrival of the first settlers, thus, the cell's tree carrying
                 capacity
@@ -73,7 +73,7 @@ class Map:
         - water_cells_map : indices of cells containing water
         - penalty_w : Penalty [0,1] for each cell depending on the smallest area-weighted distance to any freshwater
                 lake, which depends on whether Rano Raraku is dried out.
-        - occupied_gardens : dynamic number of occupied gardens by agents in each cell
+        - cultivated_gardens : dynamic number of cultivated gardens by agents in each cell
         - population_size : population in each cell
         - tree_clearance : number of cleared trees in each cell
         - trees_map : number of available trees in each cell.
@@ -82,7 +82,7 @@ class Map:
     ========================
     - an elevation image (with a latitude and longitude bounding box)
     - a slope image (with the same bounding box)
-    - Figure 4 of [Puleston2017], giving farming producitivity indices
+    - Figure 4 of [Puleston2017], giving arability indices
             (with a longitude and latitude bounding box)
 
     [Puleston2017]
@@ -105,7 +105,7 @@ class Map:
         - get water cells for the Lakes Rano Aroi, Kau and Raraku and determine the cells, water penalties and distance
                 to water in the periods when Raraku is dried out and when it is not.
         - calculate penalty of elevation and slope and combine them to geography penalty
-        - get the farming productivity indices and the amount of available farming gardens in each cell
+        - get the arability indices and the amount of available cultivating gardens in each cell
         - distribute trees on the island as the tree carrying capacity
         - Initialise arrays for storing the dynamic attributes of Easter Island.
 
@@ -120,7 +120,7 @@ class Map:
         el_bbox : list of floats
             bounding box of the elevation image: lonmin, latmin, lonmax, latmax
         puleston2017_image_file : str
-            path and filename of the farming productivity image by Puleston 2017
+            path and filename of the arability image by Puleston 2017
         puleston_bbox : (float, float, float, float)
             bounding box of the image by Puleston 2017: lonmin, latmin, lonmax, latmax
         """
@@ -138,7 +138,7 @@ class Map:
         self.triobject = None  # triangulation object
         self.el_map = None  # elevation in each cell
         self.sl_map = None  # slope in each cell
-        self.f_pi_c = None
+        self.arability_c = None
         self.trees_cap = None
         self.avail_well_gardens = None
         self.avail_poor_gardens = None
@@ -146,7 +146,7 @@ class Map:
         # Dynamic:
         self.water_cells_map = None  # The current indices of land cells with freshwater on them
         self.penalty_w = None  # The current water penalty of land cells
-        self.occupied_gardens = None
+        self.cultivated_gardens = None
         self.pop_cell = None
         self.tree_clearance = None
         self.trees_map = None
@@ -167,14 +167,14 @@ class Map:
         self.area_map_m2 = None  # Area of Easter Island in the discretised state in m2
         self.n_gardens_percell = None  # Number of gardens per cell (rounded down)
         self.coast_triangle_inds = None  # Indices of cells at the coast
-        self.dist_to_coast_map = None  # Distance of all land cells to the neares coast
+        self.dist_to_coast_map = None  # Distance of all land cells to the nearest coast
         # Pre-defined cells containing freshwater lakes
-        self.water_cells_map_nodrought = None  # The indices of land cells covering ranos aroi, kau and raraku
-        self.water_cells_map_drought = None  # The indices of land cells covering ranos aroi and kau
-        self.penalty_w_nodrought = None  # Penalties of land cells covering ranos aroi, kau and raraku
-        self.penalty_w_drought = None  # Penalties of land cells covering ranos aroi and kau
+        self.water_cells_map_nodrought = None  # The indices of land cells covering Rano aroi, kau and raraku
+        self.water_cells_map_drought = None  # The indices of land cells covering Rano aroi and kau
+        self.penalty_w_nodrought = None  # Penalties of land cells covering Rano aroi, kau and raraku
+        self.penalty_w_drought = None  # Penalties of land cells covering Rano aroi and kau
         self.dist_water_map = None  # Distance of all land cells to closest freshwater lakes rano aroi, kau and raraku
-        distmatrix_map = None  # Distance matrix of all land cells;
+        # distmatrix_map = None  # Distance matrix of all land cells;
         # Anakena Beach
         self.anakena_ind = None  # cell of all triangles index of anakena beach
         self.anakena_ind_map = None  # # land cell index of anakena beach
@@ -183,7 +183,7 @@ class Map:
         self.penalty_g = None  # geographic Penalty
         # Matrix of cells within r_T and r_F distances.
         self.circ_inds_trees = None  # square boolean matrix for all land cells: Where distance < r_T of the cell
-        self.circ_inds_farming = None  # square boolean matrix for all land cells: Where distance < r_F of the cell
+        self.circ_inds_cultivation = None  # square boolean matrix for all land cells: Where distance < r_F of the cell
 
         # === Create the Map ===
         # Calculate the Grid
@@ -212,15 +212,15 @@ class Map:
         # === Get Freshwater lakes ===
         # Coordinates of Freshwater sources
         raraku = {"midpoint": [-27.121944, -109.2886111], "Radius": 170e-3,
-                  "area": np.pi * (170e-3) ** 2}  # Radius in km
-        kau = {"midpoint": [-27.186111, -109.4352778], "Radius": 506e-3, "area": np.pi * (506e-3) ** 2}  # Radius in km
-        aroi = {"midpoint": [-27.09361111, -109.373888], "Radius": 75e-3, "area": np.pi * (75e-3) ** 2}  # Radius in km
+                  "area": np.pi * (170*1e-3) ** 2}  # Radius in km
+        kau = {"midpoint": [-27.186111, -109.4352778], "Radius": 506e-3, "area": np.pi * (506*1e-3) ** 2}  # rad in km
+        aroi = {"midpoint": [-27.09361111, -109.373888], "Radius": 75e-3, "area": np.pi * (75*1e-3) ** 2}  # rad in km
         # calculate which cells have freshwater in two scenarios: Drought and No Drought of Rano Raraku
         self.water_cells_map_nodrought, area_corresp_lake_nodrought = self.setup_freshwater_lakes(distmatrix_map,
                                                                                                   [raraku, kau, aroi])
         self.water_cells_map_drought, area_corresp_lake_drought = self.setup_freshwater_lakes(distmatrix_map,
                                                                                               [kau, aroi])
-        # For both scenarios (dorught/nodrought) calculate the penalty for all cells
+        # For both scenarios (drought/nodrought) calculate the penalty for all cells
         self.penalty_w_nodrought, self.dist_water_map = self.calc_penalty_w(distmatrix_map,
                                                                             self.water_cells_map_nodrought,
                                                                             area_corresp_lake_nodrought)
@@ -228,15 +228,15 @@ class Map:
                                                         area_corresp_lake_drought)
 
         # === Calc Resource Access ===
-        # for each cell on the map, get all map cells that are within r_t and r_f distance, respectively.
+        # for each cell on the map, get all map cells that are within r_t and r_c distance, respectively.
         # if circ_inds_trees[c, c2] == True, then c2 is in r_t distance to c.
         # Agent in c can then harvest trees in c2.
         # An agent in c can loop through the cells with value true in circ_inds_...
         self.circ_inds_trees = np.array(distmatrix_map < self.m.r_t, dtype=bool)
-        self.circ_inds_farming = np.array(distmatrix_map < self.m.r_f, dtype=bool)
+        self.circ_inds_cultivation = np.array(distmatrix_map < self.m.r_c, dtype=bool)
 
         # === Agriculture ===
-        print("Calculating the farming producitivity index f_pi_c for each cell and the amount of arable gardens")
+        print("Calculating the arability index arability_c for each cell and the amount of arable gardens")
         self.get_agriculture()
 
         # === Trees ===
@@ -245,7 +245,7 @@ class Map:
         # === Storage, Initial State: ===
         self.pop_cell = np.zeros_like(self.inds_map, dtype=np.uint64)
         self.tree_clearance = np.zeros_like(self.inds_map, dtype=np.uint64)
-        self.occupied_gardens = np.zeros_like(self.inds_map, dtype=np.uint8)
+        self.cultivated_gardens = np.zeros_like(self.inds_map, dtype=np.uint8)
         self.water_cells_map = np.copy(self.water_cells_map_nodrought)
         self.penalty_w = self.penalty_w_nodrought
 
@@ -255,7 +255,7 @@ class Map:
         """
         Create a discretised representation of Easter Island via triangular cells
 
-        using elevation and slope data from Googe Earth Engine
+        using elevation and slope data from Google Earth Engine
         (files Map/elevation_EI.tif and Map/slope_EI.tif)
 
         Steps
@@ -385,12 +385,12 @@ class Map:
         self.dist_to_coast_map = np.min(distmatrix_map[coast_triangle_land_cells, :], axis=0)
         return
 
-    def get_anakena_info(self, distmatrix_map, anakenacoords):
+    def get_anakena_info(self, distmatrix_map, anakena_coords):
         """
         determine cell of Anakena Beach (index of land cells and index of total cells) and the cell indices that fall
             within the initial moving radius of Anakena Beach
         """
-        anakena_coords_km = self.from_latlon_tokm(anakenacoords)
+        anakena_coords_km = self.from_latlon_tokm(anakena_coords)
         self.anakena_ind = self.triobject.get_trifinder()(anakena_coords_km[0], anakena_coords_km[1])
         if self.anakena_ind == -1:
             print("Error: Anakena Beach Coordinates are on a cell on the ocean. ", anakena_coords_km)
@@ -493,7 +493,7 @@ class Map:
         Calculate water penalty P_w
 
         Using evaluation variable:
-        w = min_{lake l} \ d_{l}^2 / A_l,
+        w = min_{lake l}  d_{l}**2 / A_l,
         where d is the distance to the lake l and A is the area of that lake
         and the given thresholds w01 and w99.
 
@@ -515,7 +515,7 @@ class Map:
         # Distance from all cells to all cells containing freshwater
         distances_to_water = distmatrix_map[water_cells_map, :]
         # Weigh distance by the size of the lake
-        # Note following line: Casting to divide each row seperately
+        # Note following line: Casting to divide each row separately
         weighted_squ_distance_to_water = distances_to_water ** 2 / np.array(area_corresp_lake)[:, None]
         # Take the minimum of the weighted distances to any of the cells containing water
         w_evaluation = np.min(weighted_squ_distance_to_water, axis=0)
@@ -617,34 +617,33 @@ class Map:
 
     def get_agriculture(self):
         """
-        Assign farming productivity indices to cells given the classification criteria by Puleston et al. (2017)
+        Assign arability indices to cells given the classification criteria by Puleston et al. (2017)
             (Figure 4)
 
         Steps
         =====
         - Obtain data from Puleston et al. (2017) (Figure 4)
         - Scale data to fit the previously defined grid with length units km
-        - Evaluate farming productivity indices on the midpoints of cells from the colors of the figure
+        - Evaluate arability indices on the midpoints of cells from the colors of the figure
         """
         # === Read in data ===
-        pulestonMap = plt.imread(self.puleston2017_image_file) * 1 / 255
+        puleston_map = plt.imread(self.puleston2017_image_file) * 1 / 255
 
-        # The following colors encode our classification into farming productivity:
+        # The following colors encode our classification into arability:
         #   well-suited sites = Dark Green (rgb = ca. 0.22, 0.655, 0)
         #   poorly suited sites = bright green (rgb = ca. 0.333, 1, 0),
         #   not suitable = red (rgb = ca. 1 0 0)
         #
         # Array of bools where pixels of the image are well-suited
-        data_wellSites = (pulestonMap[:, :, 0] < 0.9) * (pulestonMap[:, :, 1] > 0.5) * (pulestonMap[:, :, 1] < 0.8) * (
-                pulestonMap[:, :, 2] < 0.01)
+        data_well_sites = (puleston_map[:, :, 0] < 0.9) * (puleston_map[:, :, 1] > 0.5) * \
+                          (puleston_map[:, :, 1] < 0.8) * (puleston_map[:, :, 2] < 0.01)
         # Array of bools where pixels of the image are poorly suited.
         # Note: ~ is inversion. Hence a well-suited pixel can not also be poorly suited
-        data_poorSites = (pulestonMap[:, :, 0] < 0.9) * (pulestonMap[:, :, 1] >= 0.8) * (
-                    pulestonMap[:, :, 2] < 0.01) * (
-                             ~data_wellSites)
+        data_poor_sites = (puleston_map[:, :, 0] < 0.9) * (puleston_map[:, :, 1] >= 0.8) * (
+                    puleston_map[:, :, 2] < 0.01) * (~data_well_sites)
 
         # === Transform into our grid ===
-        # By comparing the pictures of the google elevation data and Puleston's farming productivity, define the
+        # By comparing the pictures of the google elevation data and Puleston's arability, define the
         # latitude and longitude borders of Puleston's picture
         # This can be adjusted until the data fits roughly.
         dlonmin, dlatmin, dlonmax, dlatmax = [p - b for p, b in zip(self.puleston_bbox, self.el_bbox)]
@@ -652,7 +651,7 @@ class Map:
 
         # transform pixel to km
         # Same as above for the elevation/slope image
-        pixel_dim = pulestonMap.shape
+        pixel_dim = puleston_map.shape
 
         # get delta latitude per pixel
         d_gradlat_per_pixel = abs(latmax - latmin) / pixel_dim[0]  # [degrees lat per pixel]
@@ -670,7 +669,7 @@ class Map:
         # The shift of the corner in the images:
         x_lower = 0 + 111.320 * cos_lat * dlonmin
         y_lower = 0 - 111.320 * dlatmax
-        # The minus neede here because we define the map bottom up
+        # The minus is needed here because we define the map bottom up
 
         # x and y grid in km for the picture of Puleston 2017
         x_grid_puleston = np.linspace(
@@ -688,23 +687,25 @@ class Map:
 
         # Interpolation function on Puleston 2017's pixel grid of Easter Island.
         # returns large value if well-suited (or poorly) and zero else
-        f_well = RectBivariateSpline(x_grid_puleston, y_grid_puleston, data_wellSites.T, bbox=bbox_puleston, kx=3, ky=3)
-        f_poor = RectBivariateSpline(x_grid_puleston, y_grid_puleston, data_poorSites.T, bbox=bbox_puleston, kx=3, ky=3)
+        a_well = RectBivariateSpline(x_grid_puleston, y_grid_puleston, data_well_sites.T,
+                                     bbox=bbox_puleston, kx=3, ky=3)
+        a_poor = RectBivariateSpline(x_grid_puleston, y_grid_puleston, data_poor_sites.T,
+                                     bbox=bbox_puleston, kx=3, ky=3)
 
         # Get values at midpoints of Easter Island. for both poor and well-suited data.
-        well_allowed_map = np.array([f_well(m[0], m[1])[0][0] for m in self.midpoints_map]) >= 0.01
+        well_allowed_map = np.array([a_well(m[0], m[1])[0][0] for m in self.midpoints_map]) >= 0.01
         # Cells that are already well-suited are additionally excluded from being poorly suited.
         poor_allowed_map = (~(well_allowed_map > 0)) * (
-                    np.array([f_poor(m[0], m[1])[0][0] for m in self.midpoints_map]) >= 0.01)
+                    np.array([a_poor(m[0], m[1])[0][0] for m in self.midpoints_map]) >= 0.01)
 
         # Indices of well-suited and poorly suited cells
         inds_well = np.where(well_allowed_map)[0]
         inds_poor = np.where(poor_allowed_map)[0]
 
         # === Assign Farming Productivity Indices to poor and well cells ===
-        self.f_pi_c = np.zeros_like(self.inds_map, dtype=np.float)
-        self.f_pi_c[inds_well] = self.m.f_pi_well
-        self.f_pi_c[inds_poor] = self.m.f_pi_poor
+        self.arability_c = np.zeros_like(self.inds_map, dtype=np.float)
+        self.arability_c[inds_well] = self.m.arability_well
+        self.arability_c[inds_poor] = self.m.arability_poor
 
         self.avail_well_gardens = np.zeros_like(well_allowed_map, dtype=np.uint8)
         self.avail_well_gardens[inds_well] = self.n_gardens_percell
@@ -725,13 +726,11 @@ class Map:
         return
 
 
-
-
 if __name__ == "__main__":
     """
     Example:
     Create a representation grid given some parameters
-    Plot the farming productivity and initial tree densitiy
+    Plot the arability and initial tree density
     """
 
     from main import Model
@@ -740,7 +739,7 @@ if __name__ == "__main__":
 
     # ========== LOAD PARAMETERS ===========
     # Import parameters for sensitivity analysis
-    sa_mod = importlib.import_module("params.sa.mosaic_pattern_extreme")
+    sa_mod = importlib.import_module("params.sa.default")
     print("sa.params_sensitivity: ", sa_mod.params_sensitivity)
 
     # Import parameters for scenario
@@ -758,11 +757,17 @@ if __name__ == "__main__":
     consts_mod.params_const["gridpoints_y"] = 50
 
     # === RUN ===
-    m = Model("Map/", int(seed), consts_mod.params_const, sa_mod.params_sensitivity, scenario_mod.params_scenario)
+    m_test = Model("Map/", int(seed), consts_mod.params_const, sa_mod.params_sensitivity, scenario_mod.params_scenario)
 
     # === PLOT ====
     # Plot Map for Farming Productivity Index
-    plot_map(m.map, m.map.f_pi_c * 100, r"Agric. Prod. $a_{\rm p}(c)$ [%]", cmap_fp, 0.01, 100, "F_P")
+    title = "Arability"
+    ax = plot_map(m_test.map, m_test.map.arability_c * 100, r"Arability Index $a(c)$", cmap_arability, 0.01, 100,
+                  arability_legend=True)
+    ax.set_title("")
+    plt.savefig("Map/"+title+".pdf", bbox_inches="tight", pad_inches=0)
 
     # Plot Map for Trees.
-    plot_map(m.map, m.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$ [1000]", cmap_trees, 0, 200, "T_mosaic_extreme")
+    title = "T"
+    plot_map(m_test.map, m_test.map.trees_map * 1 / 100, r"Trees $T(c, t_{\rm 0})$", cmap_trees, 0, 75)
+    plt.savefig("Map/"+title+".pdf", bbox_inches="tight", pad_inches=0)

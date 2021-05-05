@@ -1,8 +1,8 @@
 """
     File name: main.py
-    Author: Peter Steiglechner
+    Author: Peter Steiglechner (https://orcid.org/0000-0002-1937-5983)
     Date created: 01 December 2020
-    Date last modified: 07 March 2021
+    Date last modified: 04 May 2021
     Python Version: 3.8
 """
 
@@ -20,8 +20,6 @@ from create_map import Map
 from saving import *
 
 
-# from plot_functions.plot_InitialMap import *
-
 class Model:
     """
     An Agent-Based Model (ABM) that simulates the spatial and temporal dynamics of household agents on Easter Island
@@ -29,29 +27,38 @@ class Model:
 
     Short Summary
     =============
-    The environment is encoded on a 2D discretised map with heterogeneous geographic and
-    biological features. Agents represent households, who rely on two limited resources provided by this environment:
-    (1) Non-renewable palm trees (or derivate products like firewood, canoes or sugary sap e.g. [Bahn2017])
-    and (2) sweet potatoes. Agents obtain these resources by cutting trees and cultivating arable farming sites in
-    their near surroundings. Thereby, they change their local environment. The household's population growth or
-    decline consequently depends on the success of this resource acquisition.
-    We define three adaptation mechanisms which we implement as heuristic rules for the agents:
-    First, agents split into two households when their population exceeds a threshold.
-    Second, failure to harvest a sufficient fraction of the required resources pushes agents to move their settlement.
-    Heterogeneous resource availability and other geographic indicators, like elevation or distance to freshwater lakes,
-    influence the decision on an agent's new location on the island.
-    Thirdly, agents adapt their preference for trees over sweet potatoes in response to a changing environment.
-    In summary, the interaction with the natural environment, constrains and shapes settlement and harvest patterns as
-    well as the dynamics of the population size of the Easter Island society.
+    The environment is encoded on a 2D discretised map with real geographic and orographic features. Agents are
+    represented by households, which comprise a variable number of individuals. Households rely on two limited
+    resources: (1) palm trees, considered here a primary, non-renewable resource for essential tools, firewood,
+    building material, sugary sap, etc. and (2) cultivated sweet potatoes, which constituted an important source of
+    carbohydrates and water on the island. Households use these resources by cutting trees and by creating gardens (
+    i.e., cultivating cleared, arable land available in their immediate surrounding). The growth or decline of
+    households depends on the success with which they can obtain these resources. Households adapt to the changing
+    environment and to the growing population in three ways. First, a household splits into two when it becomes too
+    large and one of the two relocates in a different place. Second, households relocate when resources become scarce
+    in their current location. Their moving behaviour is determined by resource availability and certain features of
+    the environment, including elevation and distance from the three major lakes (Rano Kau, Rano Raraku,
+    and Rano Aroi). Third, in a response to the declining number of trees, households adapt their resource preference
+    from a resource combination dominated by non-renewable trees to a combination dominated by stable cultivation of
+    sweet potatoes. In summary, the interaction between agents and the natural environment and the adaptive response
+    of agents, shape settlement patterns and population dynamics on the island.
 
     Time in the Model
     =================
-        The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to
-                Anakena Beach in the North part of the island in the year t_0 = 800 A.D., following [Bahn2017].
-        All agents are then updated in yearly time steps up to 1900 A.D..
-        With the growing impacts through voyagers arriving on Easter Island in the 18th and 19th
-                centuries, deportations of inhabitants as slaves and introduction of new diseases, the prehistoric
-                phase and the island's isolated status end.
+    In accordance with suggestions by Bahn and Flenley (2017) the simulations start with two households (comprising a
+    total population of 40 individuals) positioned in the proximity of Anakena Beach in the northern part of the
+    island in the year 800 A.D., thus, mimicking the arrival of the first Polynesian settlers. Model updates occur
+    asynchronously on time steps of one year until 1800 A.D.. The model does not include processes such as spreading
+    of diseases or slavery that were introduced after the discovery of the island by European voyagers in the 18th
+    century.
+
+    References and Further Reading
+    ==============================
+    Bahn, P., & Flenley, J. (2017). Easter Island, Earth Island: The Enigmas of Rapa Nui. Rowman & Littlefield.
+    Puleston CO, Ladefoged TN, Haoa S, Chadwick OA, Vitousek PM, Stevenson CM (2017) Rain, sun, soil, and sweat:
+        A consideration of population limits on Rapa Nui (Easter Island) before European contact. Frontiers in
+        Ecology and Evolution DOI 10.3389/fevo.2017.00069
+    Rull, V. (2020), The deforestation of Easter Island. Biol Rev, 95: 124-141. https://doi.org/10.1111/brv.12556
 
     Functions
     =========
@@ -62,11 +69,8 @@ class Model:
     - step : proceed one time step
     - P_cat : return the penalty following a logistic function of an evaluation variable for cells in a specified
         category.
-
-    [Bahn2017]
-        Bahn, P., & Flenley, J. (2017). Easter Island, Earth Island: The Enigmas of Rapa Nui. Rowman & Littlefield.
     """
-    def __init__(self, folder, seed, params_const, params_sensitivity, params_scenarios, **kwargs):
+    def __init__(self, model_folder, model_seed, params_const, params_sensitivity, params_scenarios):
         """
         Initiate the model by seting constants and parameters and creating the map
 
@@ -82,19 +86,19 @@ class Model:
             parameters changed for different runs in the sensitivity analysis:
             initial tree pattern, arrival time and population growth rate, resource requirements,
         params_scenarios : dict
-            parameters for the three scenarios: homogeneous, constrained, full
+            parameters for the three scenarios: unconstrained, partlyconstrained, fullyconstrained
         """
-        self.seed = seed  # Seed
+        self.seed = model_seed  # Seed
         np.random.seed(self.seed)
 
         self.p_arrival = params_const["p_arrival"]  # population at arrival
         self.time_end = params_const["time_end"]  # end time of the simulation
         self.moving_radius_arrival = params_const["moving_radius_arrival"]    # Radius after arrival in Anakena Beach
-        self.f_pi_well = params_const["f_pi_well"]    # farming productivity index of well-suited cells
-        self.f_pi_poor = params_const["f_pi_poor"]    # farming productivity index of poorly suited cells
+        self.arability_well = params_const["arability_well"]    # arability index of well-suited cells
+        self.arability_poor = params_const["arability_poor"]    # arability index of poorly suited cells
         self.garden_area_m2 = params_const["garden_area_m2"]    # size of a garden in m^2
         self.gridpoints_y = params_const["gridpoints_y"]
-        self.gridpoints_x =  params_const["gridpoints_x"]
+        self.gridpoints_x = params_const["gridpoints_x"]
         self.n_trees_arrival = params_const["n_trees_arrival"]
         self.t_pref_max = params_const["t_pref_max"]
         self.t_pref_min = params_const["t_pref_min"]
@@ -105,18 +109,18 @@ class Model:
         self.alpha = params_const["alpha"]
 
         # Params for sensitivity analysis
-        self.f_req_pp = params_sensitivity["f_req_pp"]  # max. farming requirement in Nr of 1000 m^2 gardens per person
+        self.c_req_pp = params_sensitivity["c_req_pp"]  # max. cultivation requirement in Nr of 1000 m^2 gardens per P
         self.t_req_pp = params_sensitivity["t_req_pp"]  # max. tree requirement in trees per person per year
         self.time_arrival = params_sensitivity["time_arrival"]  # time of arrival in A.D.
         self.max_p_growth_rate = params_sensitivity["max_p_growth_rate"]
         self.map_tree_pattern_condition = params_sensitivity["map_tree_pattern_condition"]
-        self.droughts_rano_raraku = params_sensitivity["droughts_rano_raraku"]  # Droughts of Rano Raraku: list of droughts with tuple of start and end date
+        self.droughts_rano_raraku = params_sensitivity["droughts_rano_raraku"]  # Drought periods of Rano Raraku
 
         # Params for scenarios: Aggregate, Homogeneous, Constrained, Full
         self.p_split_threshold = params_scenarios["p_split_threshold"]
         self.n_agents_arrival = params_scenarios["n_agents_arrival"]  # nr of agents at arrival
         self.r_t = params_scenarios["r_t"]
-        self.r_f = params_scenarios["r_f"]
+        self.r_c = params_scenarios["r_c"]
         self.gamma = params_scenarios["gamma"]
 
         self.time_range = np.arange(self.time_arrival, self.time_end + 1)
@@ -135,7 +139,7 @@ class Model:
         self.map.check_drought(self.time)
 
         # === Preparing for Storage ===
-        self.folder = folder  # folder for saving
+        self.folder = model_folder  # folder for saving
         self.schedule = []  # list of all agents.
 
         # Environmental variables
@@ -157,9 +161,9 @@ class Model:
         self.mean_satisfactions_arr = []
         self.std_satisfactions_arr = []
         self.n_tree_unfilled_arr = []
-        self.n_farm_unfilled_arr = []
+        self.n_cult_unfilled_arr = []
         self.mean_tree_fill_arr = []
-        self.mean_farm_fill_arr = []
+        self.mean_cult_fill_arr = []
         self.fractions_poor_vs_well_arr = []
 
         self.resource_motivated_moves = 0
@@ -192,10 +196,9 @@ class Model:
         save_all(self)
         return
 
-
     def init_agents(self):
         """
-        Initalise the n_agents_arrival agents
+        Initialise the n_agents_arrival agents
 
         The simulation starts with two agents (with a total population of 40 individuals) settling in proximity to
             Anakena Beach in the North part of the island in the year t_0 = 800 A.D., following [Bahn2017].
@@ -204,7 +207,7 @@ class Model:
         for i in range(self.n_agents_arrival):
             # Arrival point is at Anakena Beach
             x, y = self.map.midpoints_map[self.map.anakena_ind_map]
-            # Create an agent, x,y are at Anakena Beach, population p = initial population distributed on all initial agents
+            # Create an agent, x,y are at Anakena Beach, population p is the initial population over the initial agents
             ag = Agent(self, x, y, int(self.p_arrival/self.n_agents_arrival))
             ag.cell = self.map.anakena_ind_map
             ag.cell_all = self.map.anakena_ind
@@ -242,7 +245,7 @@ class Model:
         n_agents = len(self.schedule)
         tot_pop = np.sum(self.map.pop_cell)
         tot_trees = np.sum(self.map.trees_map)
-        tot_gardens = np.sum(self.map.occupied_gardens)
+        tot_gardens = np.sum(self.map.cultivated_gardens)
         print("t={}: n_ags={}; p={}; tr={}; f={}".format(t, n_agents, tot_pop, tot_trees, tot_gardens))
         return
 
@@ -277,13 +280,13 @@ class Model:
         - The penalties, P_{cat}(c), depend logistically on the correlated, underlying geographic condition
             ranging from 0 (very favourable condition) to 1 (very unfavourable).
         - The penalty is set to infinity to inhibit a move to those cells c, in which the agent can not fill either
-            its current tree or farming requirement for at least the upcoming year if it would move to this cell.
+            its current tree or cultivation requirement for at least the upcoming year if it would move to this cell.
 
         Parameters
         --------
         cat : string
-            can be one of "w", "pd", "g", "tr", "f"
-            if cat is "tr" or "f", then kwargs needs to have "ag": kwargs["ag"] = object of class Agent
+            can be one of "w", "pd", "g", "tr", "cu"
+            if cat is "tr" or "cu", then kwargs needs to have "ag": kwargs["ag"] = object of class Agent
         x : array of floats
             values of the evaluation criteria for each cell
         infty_penalty : str, default: "none"
@@ -296,11 +299,11 @@ class Model:
         Returns
         -------
         penalties : array of floats
-            the penalities for each cell on land for the category between 0 and 1 or 1e10
+            the penalties for each cell on land for the category between 0 and 1 or 1e10
 
         """
-        if cat == "tr" or cat == "f":
-            # calculate the tree or farming 99% evaluation threshold.
+        if cat == "tr" or cat == "cu":
+            # calculate the tree or cultivation 99% evaluation threshold.
             x99 = self.evaluation_thresholds[cat + "99"](kwargs["ag"], self)
         else:
             # read the water, geography or population density 99% evaluation threshold
@@ -328,21 +331,21 @@ if __name__ == "__main__":
     Example Usage
     =============
     '''
-        python main.py default full 1
+        python main.py default fullyconstrained 1
     '''
     - the first additional argument is the filename of parameter values for the different experiments tested in the 
         sensitivity analysis:
-            params/sa/...  e.g. /params/sa/full
-    - the second additional argument is the filename of parameter values for the specific scenario `homogeneous', 
-        `constrained', or `full': 
-            params/scenarios/... e.g. /params/scenarios/full
+            params/sa/...  e.g. /params/sa/fullyconstrained
+    - the second additional argument is the filename of parameter values for the specific scenario `unconstrained', 
+        `partlyconstrained', or `fullyconstrained': 
+            params/scenarios/... e.g. /params/scenarios/fullyconstrained
     - the third additional argument denotes the seed value used.
     
         
     """
     print("RUN: ", sys.argv)
     if len(sys.argv) < 4:
-        print("Provide 3 arguments: python main.py default full 1")
+        print("Provide 3 arguments: python main.py default fullyconstrained 1")
 
     RUNSTART = time()
 
@@ -363,11 +366,8 @@ if __name__ == "__main__":
 
     folder = "data/{}_{}_seed{}/".format(sa_file, scenario_file, str(seed))
 
-
-
-
     # === Save files ===
-    # Save the current state of the implementation to the Subfolder
+    # Save the current state of the implementation to the subfolder
     Path(folder).mkdir(parents=True, exist_ok=True)
     Path(folder + "/used_files/").mkdir(parents=True, exist_ok=True)
     for file in ["main.py", "create_map.py", "agents.py"]:

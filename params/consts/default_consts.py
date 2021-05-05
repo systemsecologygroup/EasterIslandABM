@@ -4,8 +4,8 @@ params_const = {
     "p_arrival": 40,
     "time_end": 1900,
     "moving_radius_arrival": 1,
-    "f_pi_well": 1,
-    "f_pi_poor": 0.05,
+    "arability_well": 1,
+    "arability_poor": 0.05,
     "garden_area_m2": 1000,
     "gridpoints_y": 50,
     "gridpoints_x": 75,
@@ -28,8 +28,8 @@ params_const = {
             # Population density: 99% penalty    [ppl/km^2] Kirch (2010), Puleston et al. (2017), rough estimate of local population density in Hawaii and Maui
             "tr01": 1e5,  # Tree: 1% penalty     prefer if there are many trees around
             "tr99": lambda ag, m: ag.t_pref * m.t_req_pp * ag.p * m.s_equ,  # Tree: 99% penalty
-            "f01": 200,  # Farming: 1% penalty    prefer if there are many farming grounds around
-            "f99": lambda ag, m: (1 - ag.t_pref) * m.f_req_pp * ag.p * m.s_equ,  # Farming: 99% penalty
+            "cu01": 200,  # Farming: 1% penalty    prefer if there are many farming grounds around
+            "cu99": lambda ag, m: (1 - ag.t_pref) * m.c_req_pp * ag.p * m.s_equ,  # Farming: 99% penalty
         },
     "alpha":
         {
@@ -37,6 +37,6 @@ params_const = {
             "g": 0.2,
             "pd": 0.2,
             "tr": 0.2,
-            "f": 0.2
+            "cu": 0.2
         },
 }

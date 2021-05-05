@@ -12,13 +12,13 @@ def store_agg_values(model):
     model.mean_satisfactions_arr.append(np.mean(satisfactions) if len(model.schedule) > 0 else 0)
     model.std_satisfactions_arr.append(np.std(satisfactions) if len(model.schedule) > 0 else 0)
     tree_fills = np.array([ag.tree_fill for ag in model.schedule])
-    farm_fills = np.array([ag.farming_fill for ag in model.schedule])
+    cult_fills = np.array([ag.cult_fill for ag in model.schedule])
     model.n_tree_unfilled_arr.append(np.sum(tree_fills < 1) if len(model.schedule) > 0 else 0)
-    model.n_farm_unfilled_arr.append(np.sum(farm_fills < 1) if len(model.schedule) > 0 else 0)
+    model.n_cult_unfilled_arr.append(np.sum(cult_fills < 1) if len(model.schedule) > 0 else 0)
     model.mean_tree_fill_arr.append(np.mean(tree_fills) if len(model.schedule) > 0 else 0)
-    model.mean_farm_fill_arr.append(np.mean(tree_fills) if len(model.schedule) > 0 else 0)
-    fractions_poor_vs_well = [np.sum(ag.f_pi_occ_gardens == model.f_pi_poor) / max(len(ag.f_pi_occ_gardens), 1) for
-                              ag in model.schedule]
+    model.mean_cult_fill_arr.append(np.mean(cult_fills) if len(model.schedule) > 0 else 0)
+    fractions_poor_vs_well = [np.sum(ag.arability_cultivated_gardens == model.arability_poor) /
+                              max(len(ag.arability_cultivated_gardens), 1) for ag in model.schedule]
     model.fractions_poor_vs_well_arr.append(np.mean(fractions_poor_vs_well) if len(model.schedule) > 0 else 0)
 
     model.excess_deaths = 0
@@ -30,8 +30,8 @@ def store_agg_values(model):
 
 def store_agents_values(model, time):
     index = pd.MultiIndex.from_product([[time], [int(ag.index) for ag in model.schedule]], names=["time", "id"])
-    agents_stats = [np.array([time, int(ag.index), ag.x, ag.y, ag.p, len(ag.f_pi_occ_gardens), ag.t_pref], dtype=np.float) for ag in
-                    model.schedule]
+    agents_stats = [np.array([time, int(ag.index), ag.x, ag.y, ag.p, len(ag.arability_cultivated_gardens), ag.t_pref],
+                             dtype=np.float) for ag in model.schedule]
     if len(model.schedule) == 0:
         agents_stats = [np.array([np.nan for _ in model.agents_stats_columns])]
     agents_stats_current = pd.DataFrame(agents_stats, columns=model.agents_stats_columns, index=index)
@@ -59,7 +59,7 @@ def store_const_map(model):
                 "el": ("inds_map", model.map.el_map),
                 "dist_to_water": ("inds_map", model.map.dist_water_map),
                 "dist_to_coast": ("inds_map", model.map.dist_to_coast_map),
-                "f_pi": ("inds_map", model.map.f_pi_c),
+                "arability": ("inds_map", model.map.arability_c),
                 "trees_cap": ("inds_map", model.map.trees_cap)
             },
             coords={
@@ -84,7 +84,7 @@ def store_dynamic_map(model, time):
     n = np.where(time == model.time_range)[0][0]
 
     model.trees[n, :] = model.map.trees_map
-    model.gardens[n, :] = model.map.occupied_gardens
+    model.gardens[n, :] = model.map.cultivated_gardens
     model.population[n, :] = model.map.pop_cell
     model.clearance[n, :] = model.map.tree_clearance
     model.lakes[n, model.map.water_cells_map] = True
@@ -98,7 +98,6 @@ def save_all(model):
     # store attributes of single agents
     model.agents_stats.to_csv(path_or_buf=model.folder+"ags_stats.csv")
 
-
     # global aggregate:
     save_agg_values = xr.Dataset(
         {
@@ -109,9 +108,9 @@ def save_all(model):
             "mean_satisfactions": (["time"], model.mean_satisfactions_arr),
             "std_satisfactions": (["time"], model.std_satisfactions_arr),
             "n_tree_unfilled": (["time"], model.n_tree_unfilled_arr),
-            "n_farm_unfilled": (["time"], model.n_farm_unfilled_arr),
+            "n_cult_unfilled": (["time"], model.n_cult_unfilled_arr),
             "mean_tree_fill": (["time"], model.mean_tree_fill_arr),
-            "mean_farm_fill": (["time"], model.mean_farm_fill_arr),
+            "mean_cult_fill": (["time"], model.mean_cult_fill_arr),
             "fractions_poor_vs_well": (["time"], model.fractions_poor_vs_well_arr),
         },
         {

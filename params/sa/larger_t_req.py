@@ -1,5 +1,5 @@
 n_fix = "low"
-f_req_pp = 6.79 if n_fix == "low" else 1.95  # TODO
+c_req_pp = 6.79 if n_fix == "low" else 1.95  # TODO
 # "low": 1/[(1.46 Tons/ha/year) * 0.1 (ha/gardens) * (2809 kcal/day / (Tons/year)  / (2785 kcal/day/person)]
 #       1/[1.46 * 0.1 * 2809 * 2785] * [tons * ha * kcal * year * day * person / (ha year gardens day year kcal)]
 #       1/[1.46 * 0.1 * 2809 * 2785] * [1/ (tons * ha * kcal * year * day * person / (ha year gardens day Tons kcal))]
@@ -10,7 +10,7 @@ f_req_pp = 6.79 if n_fix == "low" else 1.95  # TODO
 
 params_sensitivity = {
     "t_req_pp": 15,
-    "f_req_pp": f_req_pp,
+    "c_req_pp": c_req_pp,
     "time_arrival": 800,
     "max_p_growth_rate": 1.007,  # Bahn and Flenley 2017
 

@@ -1,30 +1,34 @@
-'''
+"""
     File name: agents.py
-    Author: Peter Steiglechner
+    Author: Peter Steiglechner (https://orcid.org/0000-0002-1937-5983)
     Date created: 01 December 2020
-    Date last modified: 12 April 2021
+    Date last modified: 04 May 2021
     Python Version: 3.8
-'''
+"""
 
 import numpy as np
 from copy import copy
+
+
 # from plot_functions.plot_InitialMap import *
+
 
 class Agent:
     """
     Household agents located on the island with a specific population, resource related attributes and an update
     procedure for each year.
-    They interact with the environment through harvesting trees and farming produce.
+    They interact with the environment through harvesting trees and sweet potato cultivation.
 
     Variables
     =========
     The (independent) state variables of the agent entity are:
     - Location (x, y, cell)
     - Population size p
-    - preference t_pref of resources tree over farming produce
-    - farming yield from occupied gardens (and their farming productivity)
+    - preference t_pref of resources tree over sweet potatoes
+    - yield from cultivated gardens (and their arability index)
     - cut trees in each year
-    - satisfaction with resource harvest.
+    - success with resource harvest and
+    - satisfaction
 
     Processes
     =========
@@ -38,7 +42,7 @@ class Agent:
     - mu_mean
     - calc_penalty
     - move
-    - occupy_gardens
+    - cultivate_gardens
     - harvest_trees
     - update
     """
@@ -55,34 +59,34 @@ class Agent:
         +---------------+-----------------------------------------------+---------------------------+---------------+
         | x, y          | location of the agent on Easter Island        | all positions on EI       | km            |
         +---------------+-----------------------------------------------+---------------------------+---------------+
-        | cell          | the index of the cell corresp to (x,y) on EI  | {0, 1, ...}               |               |
+        | cell          | index of cell corresponding to (x,y) on EI    | {0, 1, ...}               |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
         | p             | population size                               | {p_remove_threshold, ..., | ppl           |
         |               |                                               |       p_split_threshold}  |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
-        | t_pref        | tree preference                               | [t_pref_min, t_pref_max]  |               |
+        | t_pref        | resource preference for trees over sweet pot  | [t_pref_min, t_pref_max]  |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
-        | f_req         | required amount of farming produce (gardens)  | [0,[                      | #gardens with |
-        |               |                                               |                           | farm_prod=1   |
+        | c_req         | required amount of sweet pot (gardens)        | [0,[                      | #gardens with |
+        |               |                                               |                           | arability=1   |
         +---------------+-----------------------------------------------+---------------------------+---------------+
         | t_req         | required amount of trees per year             | {0, ...}                  |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
-        | tree_fill     | fraction of tree requirement t_req in a year  | [0,1]                     |               |
+        | tree_fill     | ratio of actual vs. req trees t_req in a year | [0,1]                     |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
-        | farming_fill  | fraction of farming requirement f_req         | [0,1]                     |               |
-        |               |                   filled by occupied gardens  |                           |               |
+        | cult_fill     | fraction of cult requirement c_req            | [0,1]                     |               |
+        |               |                 filled by cultivated gardens  |                           |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
         | satisfaction  | with resource fill in current year = Min of   | [0,1]                     |               |
-        |               |    tree_fill and farming_fill ~ Liebig's law  |                           |               |
+        |               |    tree_fill and cult_fill ~ Liebig's law  |                           |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
         | past_satis-   | past-dependent satisfaction = average of      | [0,1]                     |               |
         |       faction |      this and past year's satisfaction        |                           |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
-        | occupied_gar- | indices of the cells in which a garden is     | list of values in         |               |
-        | dens_inds_map |          occupied by the agent                |      self.m.map.inds_map  |               |
+        | cultivated_gar- | indices of the cells in which a garden is   | list of values in         |               |
+        | dens_inds_map |          cultivated by the agent              |      self.m.map.inds_map  |               |
         +---------------+-----------------------------------------------+---------------------------+---------------+
-        | f_pi_occ_-    | farming productivity of the cells of each     | list of values [0,1]      |               |
-        |   gardens     |  garden in occupied_gardens_inds_map          |                           |               |
+        | arability_-   | arability index of the cells of each          | list of values [0,1]      |               |
+        |   cult_gardens |  garden in cultivated_gardens_inds_map        |                           |               |
         +===============+===============================================+===========================+===============+
 
         Parameters
@@ -106,24 +110,27 @@ class Agent:
         self.p = p  # population size
         self.t_pref = self.m.t_pref_max  # tree preference
         self.update_t_pref()
-        self.f_req = 0  # agent's required amount of (gardens * farming_productivity)
+        self.c_req = 0  # agent's required amount of (gardens * cultivation_productivity)
         self.t_req = 0  # agent's required amount of trees per year
         self.tree_fill = 1  # fraction of tree requirement t_req filled each year
-        self.farming_fill = 1  # fraction of farming requirement f_req filled by available gardens & [0,1] & \\
-        self.satisfaction = 1  # satisfaction with harvest success index with
-        self.past_satisfaction = 1  # satisfaction of previous time step
-        self.occupied_gardens_inds_map = np.array([]).astype(np.int16)  # Indices of the cell (in self.m.map.inds_map) of each garden occupied
-        self.f_pi_occ_gardens = np.array([]).astype(np.float)  # farming productivity index of each garden occupied
+        self.cult_fill = 1  # fraction of cultivation requirement c_req filled by available gardens & [0,1] & \\
+        self.success = 1  # success with harvest
+        self.past_success = 1  # success of previous time step
+        self.satisfaction = 1  # satisfaction = average of successes
+        self.cultivated_gardens_inds_map = np.array([]).astype(np.int16)  # Indices of the cell 
+        # (in self.m.map.inds_map) of each garden cultivated
+        self.arability_cultivated_gardens = np.array([]).astype(
+            np.float)  # arability index index of each garden cultivated
         return
 
     def calc_resource_req(self):
         """
-        calculate resource (tree and farming) requirement for current year
+        calculate resource (tree and cultivation) requirement for current year
 
-        Uses the constant tree/farming requirement per person farming_req_pp/tree_req_pp, and the agent's tree
+        Uses the constant tree/cultivation requirement per person cultivation_req_pp/tree_req_pp, and the agent's tree
         preference t_pref and population size p
         """
-        self.f_req = (self.p * self.m.f_req_pp * (1 - self.t_pref))
+        self.c_req = (self.p * self.m.c_req_pp * (1 - self.t_pref))
         self.t_req = (self.p * self.m.t_req_pp * self.t_pref)
         return
 
@@ -137,11 +144,10 @@ class Agent:
         """
         # level of deforestation around the agent
         epsilon = self.m.map.trees_map[self.m.map.circ_inds_trees[self.cell]].sum() / \
-                  self.m.map.trees_cap[self.m.map.circ_inds_trees[self.cell]].sum()
+            self.m.map.trees_cap[self.m.map.circ_inds_trees[self.cell]].sum()
         # linear increase:
         self.t_pref = epsilon * (self.m.t_pref_max - self.m.t_pref_min) + self.m.t_pref_min
         return
-
 
     def split_household(self):
         """
@@ -161,8 +167,8 @@ class Agent:
         child.p = int(self.m.p_splitting_agent)
         child.update_t_pref()
         child.calc_resource_req()
-        child.occupied_gardens_inds_map = np.array([]).astype(int)
-        child.f_pi_occ_gardens = np.array([])
+        child.cultivated_gardens_inds_map = np.array([]).astype(int)
+        child.arability_cultivated_gardens = np.array([])
 
         # Move the child agent and append to list of agents
         child.move(np.arange(len(self.m.map.inds_map)))
@@ -171,32 +177,32 @@ class Agent:
 
     def remove_unnecessary_gardens(self):
         """
-        remove gardens if there is too much overproduce given the population size and the household's required produce
-            per person
+        remove gardens if there is too much overproduce given the household's cultivation requirement
 
         Initiated after population_change (and potentially split household).
-        A smaller population requires less farming produce and keeping the gardens is unnecessary effort for the agent
+        A smaller population requires less sweet potatoes and keeping the gardens is unnecessary effort for the agent
         at least for the moment.
         As long as possible, remove first the poorly suited, then well-suited gardens.
         """
-        f_overproduce = np.sum(self.f_pi_occ_gardens) - self.f_req
-        # loop through gardens, ordered by their farming productivity from poor to well-suited
-        for garden in self.occupied_gardens_inds_map[np.argsort(self.f_pi_occ_gardens)]:
+        cultivation_overproduce = np.sum(self.arability_cultivated_gardens) - self.c_req
+        # loop through gardens, ordered by their arability index from poor to well-suited
+        for garden in self.cultivated_gardens_inds_map[np.argsort(self.arability_cultivated_gardens)]:
             # try reducing the current garden and see
-            f_overproduce -= self.m.map.f_pi_c[garden]
-            if f_overproduce >= 0:
+            cultivation_overproduce -= self.m.map.arability_c[garden]
+            if cultivation_overproduce >= 0:
                 # if there is still overproduce, remove the garden from the map
-                self.m.map.occupied_gardens[garden] -= 1
+                self.m.map.cultivated_gardens[garden] -= 1
                 # remove the garden from the agent
-                self.f_pi_occ_gardens = np.delete(self.f_pi_occ_gardens,
-                                        np.where(self.occupied_gardens_inds_map == garden)[0][0])  # only delete first occurence
-                self.occupied_gardens_inds_map = np.delete(self.occupied_gardens_inds_map,
-                                       np.where(self.occupied_gardens_inds_map == garden)[0][0])  # only delete first occurence
+                self.arability_cultivated_gardens = np.delete(self.arability_cultivated_gardens,
+                                                              np.where(self.cultivated_gardens_inds_map == garden)[0][
+                                                                  0])  # only delete first occurrence
+                self.cultivated_gardens_inds_map = np.delete(self.cultivated_gardens_inds_map,
+                                                             np.where(self.cultivated_gardens_inds_map == garden)[0][
+                                                                 0])  # only delete first occurrence
             else:
                 # if there is no overproduce, done
                 return
         return
-
 
     def remove_agent(self):
         """
@@ -208,10 +214,10 @@ class Agent:
         # remove population from the cell
         self.m.map.pop_cell[self.cell] -= self.p
         # remove all gardens
-        for garden in self.occupied_gardens_inds_map:
-            self.m.map.occupied_gardens[garden] -= 1
-        self.occupied_gardens_inds_map = np.array([])
-        self.f_pi_occ_gardens = np.array([])
+        for garden in self.cultivated_gardens_inds_map:
+            self.m.map.cultivated_gardens[garden] -= 1
+        self.cultivated_gardens_inds_map = np.array([])
+        self.arability_cultivated_gardens = np.array([])
         self.m.schedule.remove(self)
         print("Agent ", self.index, " died.")
         self.m.excess_deaths += self.p
@@ -220,17 +226,17 @@ class Agent:
 
     def population_change(self):
         """
-        population growth/decline via a stochastic process for each individual
+        population growth/decline via a stochastic process for each individual following mu_mean, exp. net growth rate
 
         The population growth/decline process is stochastic with each individual of the household having a probability
-        to die or reproduce given by the mean growth rate mu_mean.
+        to die or reproduce given by the exp net growth rate mu_mean.
         Thus, on average a household grows with rate mu_mean.
-        This mean growth rate is calculated from the past-dependent satisfaction index s in a separate function mu_mean.
+        This mean growth rate is calculated from the satisfaction index s in a separate function mu_mean.
         """
         # past-dependent satisfaction as average of current and last satisfaction value.
-        past_dependent_satisfaction = 0.5 * (self.satisfaction + self.past_satisfaction)
-        # mean growth rate
-        mu_mean = self.mu_mean(past_dependent_satisfaction)
+        self.satisfaction = 0.5 * (self.success + self.past_success)
+        # expected net growth rate
+        mu_mean = self.mu_mean(self.satisfaction)
 
         # random values for each individual of the population
         rands = np.random.random(size=self.p)
@@ -248,7 +254,7 @@ class Agent:
 
     def mu_mean(self, s):
         """
-        Return the mean growth rate given an agent's past-dependent satisfaction
+        Return the mean growth rate given an agent's satisfaction
 
         The characteristic value for a constant population size, s_equ, with mu(s_equ)=1 is adopted from a
         demographic model in Puleston et al. (2017).
@@ -266,7 +272,6 @@ class Agent:
             m_decl = 1 / self.m.s_equ
             return m_decl * s
 
-
     def calc_penalty(self, triangle_inds):
         """
         Calculate the penalty(ies) for cell(s) triangle_inds on Easter Island based on weights, alpha, on the specific
@@ -276,16 +281,16 @@ class Agent:
         ====================
         - Agents prefer a certain geography (low altitude and low slope), proximity to freshwater lakes
             (weighted by the area), low population density, as well as large numbers of trees within r_t distance
-            and high availability of arable (in particular, well-suited) potential gardens within r_f distance.
+            and high availability of arable (in particular, well-suited) potential gardens within r_c distance.
         - The penalties, P_{cat}(c), depend logistically on correlated, underlying geographic condition variables
             ranging from 0 (very favourable condition) to 1 (very unfavourable).
         - The penalty is additionally set to infinity to inhibit a move to those cells c, in which the agent can not
-            fill either its current tree or farming requirement for at least the upcoming year if it would move to this
-            cell.
+            fill either its current tree or cultivation requirement for at least the upcoming year if it would move
+            to this cell.
         - All categorical penalties for a cell are then summed up using (normed) weights alpha_cat to obtain a
             total evaluation index, P_tot, of cell c's suitability as a new household location.
-            $$ P_{tot}(c) =  \sum_{cat} \alpha_{cat}^{i} \cdot P_{cat}(c) $$
-            - The relative weights for farming, alpha_farming, and tree, alpha_tree, in the equation above vary for
+            $$ P_{tot}(c) =  sum_{cat} alpha_{cat}^{i} * P_{cat}(c) $$
+            - The relative weights for cultivation, alpha_cult, and tree, alpha_tree, in the equation above vary for
                 each agent as we additionally scale them with their current tree preference (and then re-normalise).
             -The other weights (for geography, freshwater proximity, and population density) remain const for all
                 agents.
@@ -293,51 +298,51 @@ class Agent:
         More detailed calculation
         =========================
             The total penalty for a cell is calculated as
-            $$ P_{tot}^{i}(c) = \sum_{cat} \alpha_{cat}^{i} \cdot P_{cat} $$
+            $$ P_{tot}^{i}(c) = sum {cat} alpha_{cat}^{i} * P_{cat} $$
             where cat represents the categories used for the elevation of a cell:
             - "w" for area weighted proximity for freshwater,
             - "g" for geography (including elevation and slope)
             - "pd" for population density,
             - "tr" for tree availability,
-            - "f" for availability of well-suited and total gardens,
+            - "cu" for availability of well-suited and total gardens,
             The weights alpha are explained in the following:
             - alpha_w, alpha_pd and alpha_g are constant weights
-            - alpha_tr and alpha_f are multiplied by the agent's tree preference and then normalised such that sum of
+            - alpha_tr and alpha_cu are multiplied by the agent's tree preference and then normalised such that sum of
                 all alpha_cat is 1
             The penalties P_cat(c) is assigned for a certain category given the value of the evaluation criteria in the
                 specific cell $c$:
                  - The penalty grows logistically with $x$
-                    $$ P_{cat}(c) =  \frac{1}{1+exp[-k_x \cdot (x(c) - x_{0.5})]} $$
+                    $$ P_{cat}(c) =  \frac{1}{1+exp[-k_x * (x(c) - x_{0.5})]} $$
                  - Here x(c) is the value of an evaluation criteria for cell c in the specific category cat:
                     - for "g":
-                        P_g= 0.5 \cdot (P_{el} + P_{sl}) with x(c)=el(c) and x(c) = sl(c)
+                        P_g= 0.5 * (P_{el} + P_{sl}) with x(c)=el(c) and x(c) = sl(c)
                     - for "w":
                         x(c) = min_{lake} [ d_{lake}^2 / A_{lake} ],
                         where d_{lake} ist the distance and A_{lake} is the area of lakes Raraku, Kau, Aroi
                     - for "pd":
-                        x(c) = \sum_{c' \in C_{F}(c)}  pop(c') / A_{C_F}
-                        where pop(c) is the population in a cell, and A_{C_F} is the area for the cells in the
-                            circle C_F around cell c
+                        x(c) = sum {c' within C_{C}(c)}  pop(c') / A_{C_C}
+                        where pop(c) is the population in a cell, and A_{C_C} is the area for the cells in the
+                            circle C_C around cell c
                     - for "tr":
-                        x(c) = \sum_{c' \in C_{T}(c)} T(c')
+                        x(c) = sum {c' within C_{T}(c)} T(c')
                         Additional: If x(c) < tr99, i.e. there are not enough trees for the current requirement of the
                                 agent, then the penalty is set to a value infinity.
-                    - for "f":
-                        P_f= 0.5 \cdot (P_{f-tot} + P_{f-well})
+                    - for "cu":
+                        P_cu= 0.5 * (P_{cu-tot} + P_{cu-well})
                         with
-                            x_{f-tot}(c) = \sum_{c' \in C_{F}(c)}  F_{PI}(c') \cdot (n_{gardens}(c') - n_{occ}(c'))
+                            x_{cu-tot}(c) = sum {c' within C_{C}(c)}  a(c') * (n_{gardens}(c') - n_{cult}(c'))
                         and
-                            x_{f-well}(c) = \sum_{c' \in C_{F}(c) with F_{PI}(c')=1}  (n_{gardens}(c') - n_{occ}(c'))
+                            x_{cu-well}(c) = sum {c' within C_{F}(c) with a(c')=1}  (n_{gardens}(c') - n_{cult}(c'))
                         respectively.
-                        Additional: If x_{f-tot}(c) < f99, i.e. there are not enough gardens for the current requirement
-                            of the agent, then the penalty is set to a value infinity.
+                        Additional: If x_{cu-tot}(c) < cu99, i.e. there are not enough gardens for the current
+                            requirement of the agent, then the penalty is set to a value infinity.
 
                  - k_x is the steepness of the logistic function, which is determined by the evaluation_thresholds
                     for each category:
                         - x_01, the value at which the penalty is P_{cat}|_{x=x01} = 0.01
                         - and x_99 the value at which the penalty is P_{cat}|_{x=x99} = 0.99
                     Then k_x = \frac{1}{0.5*(x99-x01)} log(0.99/0.01)
-                - x_{0.5} = 0.5 \cdot (x01 + x99), the value of x at which the penalty is 0.5
+                - x_{0.5} = 0.5 * (x01 + x99), the value of x at which the penalty is 0.5
 
         When ist the function called
         ============================
@@ -363,7 +368,7 @@ class Agent:
         # Boolean matrix of size len(inds_map) and len(triangle_inds).
         # c_ij = True if the cell with index i (in inds_map) is in r_t/f distance of cell j in triangle_inds
         circ_inds_trees_arr = (self.m.map.circ_inds_trees[:, triangle_inds]).astype(np.int)
-        circ_inds_farming_arr = (self.m.map.circ_inds_farming[:, triangle_inds]).astype(np.int)
+        circ_inds_cultivation_arr = (self.m.map.circ_inds_cultivation[:, triangle_inds]).astype(np.int)
 
         # == Calculate each categories penalty ==
 
@@ -372,12 +377,12 @@ class Agent:
 
         # === Tree Penalty ===
         tr = np.dot(self.m.map.trees_map, circ_inds_trees_arr)
-        p_tr = self.m.P_cat(tr, "tr", infty_penalty="smaller than x99",  ag=self)
+        p_tr = self.m.P_cat(tr, "tr", infty_penalty="smaller than x99", ag=self)
 
         # === Pop Density Penalty ===
         # Population density = sum of population in each cell in r_F / (nr of cells in r_F distance * cell area)
-        pd = np.dot(self.m.map.pop_cell, circ_inds_farming_arr) / \
-             (np.sum(circ_inds_farming_arr, axis=0) * self.m.map.triangle_area_m2 * 1e-6)
+        pd = np.dot(self.m.map.pop_cell, circ_inds_cultivation_arr) / \
+            (np.sum(circ_inds_cultivation_arr, axis=0) * self.m.map.triangle_area_m2 * 1e-6)
         p_pd = self.m.P_cat(pd, "pd")
 
         # === Freshwater Penalty ===
@@ -385,36 +390,35 @@ class Agent:
 
         # === Agriculture Penalty ===
         # for poorly and well suited cells
-        avail_garden_areas = (self.m.map.n_gardens_percell - self.m.map.occupied_gardens)
-        avail_farming_produce_cells = self.m.map.f_pi_c * avail_garden_areas
-        f_tot = np.dot(avail_farming_produce_cells, circ_inds_farming_arr)
-        p_f_tot = self.m.P_cat(f_tot, "f", infty_penalty="smaller than x99", ag=self)
+        avail_garden_areas = (self.m.map.n_gardens_percell - self.m.map.cultivated_gardens)
+        avail_yield_cells = self.m.map.arability_c * avail_garden_areas
+        cu_tot = np.dot(avail_yield_cells, circ_inds_cultivation_arr)
+        p_cu_tot = self.m.P_cat(cu_tot, "cu", infty_penalty="smaller than x99", ag=self)
 
         # for well suited cells only
-        avail_well_farming_produce_cells = (self.m.map.f_pi_c == self.m.f_pi_well) * avail_garden_areas
-        f_well = np.dot(avail_well_farming_produce_cells, circ_inds_farming_arr)
-        p_f_well = self.m.P_cat(f_well, "f", infty_penalty="none", ag=self)
+        avail_well_yield_cells = (self.m.map.arability_c == self.m.arability_well) * avail_garden_areas
+        cu_well = np.dot(avail_well_yield_cells, circ_inds_cultivation_arr)
+        p_cu_well = self.m.P_cat(cu_well, "cu", infty_penalty="none", ag=self)
 
         # combined
-        p_f = 0.5 * (p_f_tot + p_f_well)
+        p_cu = 0.5 * (p_cu_tot + p_cu_well)
 
         # === Total Penalty ===
-        # determine alpha_f and alpha_tr from the current tree preference of the agent
-        eta = (self.t_pref * self.m.alpha["tr"] + (1 - self.t_pref) * self.m.alpha["f"]) / (
-                self.m.alpha["tr"] + self.m.alpha["f"])
+        # determine alpha_cu and alpha_tr from the current tree preference of the agent
+        eta = (self.t_pref * self.m.alpha["tr"] + (1 - self.t_pref) * self.m.alpha["cu"]) / (
+                self.m.alpha["tr"] + self.m.alpha["cu"])
         alpha_tr = self.m.alpha["tr"] * self.t_pref / eta
-        alpha_f = self.m.alpha["f"] * (1 - self.t_pref) / eta
+        alpha_cu = self.m.alpha["cu"] * (1 - self.t_pref) / eta
 
         # linear combination of all weighted penalties for all cells of triangle_inds
         p_tot = (self.m.alpha["w"] * p_w +
                  alpha_tr * p_tr +
                  self.m.alpha["pd"] * p_pd +
-                 alpha_f * p_f +
+                 alpha_cu * p_cu +
                  self.m.alpha["g"] * p_g
                  )
-        p_cat = [p_w, p_g, p_tr, p_f, p_pd]
+        p_cat = [p_w, p_g, p_tr, p_cu, p_pd]
         return p_tot, p_cat
-
 
     def move(self, within_inds):
         """
@@ -425,7 +429,7 @@ class Agent:
         We allow agents to relocate their settlement on the island
             - when they split off from an existing agent or
             - when they are sufficiently unsatisfied from the resource harvest, in particular, if both
-                past_satisfaction and current satisfaction are lower than the equilibrium satisfaction
+                satisfaction and current success are lower than the equilibrium satisfaction
         When prompted to move, the agent decides on a new location by evaluating all cells on the island using several
         preferences and then assigning probabilities, accordingly.
         This probabilistic approach accounts for the fact that human decision making is not simply a rational
@@ -455,26 +459,27 @@ class Agent:
         Parameters
         ----------
         within_inds : array of ints
-            inidices of the triangles on the map to which the agent can move
+            indices of the triangles on the map to which the agent can move
 
         """
 
         # === Clear your old space ===
         self.m.map.pop_cell[self.cell] -= self.p
-        for garden in self.occupied_gardens_inds_map:
-            self.m.map.occupied_gardens[garden] -= 1
-        self.occupied_gardens_inds_map = np.array([]).astype(int)
-        self.f_pi_occ_gardens = np.array([])
+        for garden in self.cultivated_gardens_inds_map:
+            self.m.map.cultivated_gardens[garden] -= 1
+        self.cultivated_gardens_inds_map = np.array([]).astype(int)
+        self.arability_cultivated_gardens = np.array([])
 
         # === Penalty Evaluation ===
-        p_tot, [p_w, p_g, p_tr, p_f, p_pd] = self.calc_penalty(within_inds)
+        # local penalties could be used for plotting, see below:  _ = [p_w, p_g, p_tr, p_cu, p_pd]
+        p_tot, _ = self.calc_penalty(within_inds)
 
         # === Probabilities ===
-        pr_c = np.exp( - self.m.gamma * p_tot)
+        pr_c = np.exp(- self.m.gamma * p_tot)
 
         # PLOT THE PENALTIES AT TWO DIFFERENT SNAPSHOTS
         # if self.m.time == 1400 or self.m.time == 1500:
-        #    for v, label in zip([p_tr, p_f, p_pd, p_tot], ["tr", "f", "pd", "tot"]):
+        #    for v, label in zip([p_tr, p_cu, p_pd, p_tot], ["tr", "cu", "pd", "tot"]):
         #        l = r"Penalty $P_{" + label + r"}"
         #        plot_map(self.m.map, v, l, cmapPenalty, 0, 1, str(self.time)+"_penalty_"+label, t=self.m.time)
         #    plot_map(self.m.map, pr_c, "Moving Probability", cmapProb, 1e-5, 1, str(self.time)+"_prob", t=self.m.time)
@@ -482,7 +487,7 @@ class Agent:
         # === Move ===
         if any(p_tot < 1):
             # if there is a cell with finite penalty (non-zero probability).
-            pr_c *= 1/np.sum(pr_c)
+            pr_c *= 1 / np.sum(pr_c)
             self.cell = np.random.choice(within_inds, p=pr_c)
         else:
             # Choose new cell randomly
@@ -495,12 +500,13 @@ class Agent:
         # Find settlement location in the triangle:
         # Get corner points of the agent's chosen triangle
         corner_inds_new_cell = self.m.map.triobject.triangles[self.cell_all]
-        corner_A, corner_B, corner_C = [[self.m.map.triobject.x[k], self.m.map.triobject.y[k]] for k in corner_inds_new_cell]
+        corner_a, corner_b, corner_c = [[self.m.map.triobject.x[k], self.m.map.triobject.y[k]] for k in
+                                        corner_inds_new_cell]
         # two random numbers s and t
         s, t = sorted([np.random.random(), np.random.random()])
-        # Via barithmetric points.
-        self.x = s * corner_A[0] + (t - s) * corner_B[0] + (1 - t) * corner_C[0]
-        self.y = s * corner_A[1] + (t - s) * corner_B[1] + (1 - t) * corner_C[1]
+        # Via barycentric points.
+        self.x = s * corner_a[0] + (t - s) * corner_b[0] + (1 - t) * corner_c[0]
+        self.y = s * corner_a[1] + (t - s) * corner_b[1] + (1 - t) * corner_c[1]
 
         # Check:
         if not self.cell_all == self.m.map.triobject.get_trifinder()(self.x, self.y):
@@ -508,96 +514,97 @@ class Agent:
 
         return
 
-
-    def occupy_gardens(self):
+    def cultivate_gardens(self):
         """
-        occupy more gardens (preferably, well suited and with fewest number of trees needed to be cleared) in radius r_f
-            until requirement f_req fulfilled or no further unoccupied gardens available in r_f.
+        cultivate more gardens (preferably, well suited and with fewest number of trees needed to be cleared) in
+            radius r_c until requirement c_req fulfilled or no further uncultivated gardens available in r_c.
 
         Idea
         ====
-        - Agents have occupied gardens of each 1000 m2 in arable cells
-            In each year, all occupied gardens have a constant yield, given by the farming productivity index according
+        - Agents have cultivated gardens of each 1000 m2 in arable cells
+            In each year, all cultivated gardens have a constant yield, given by the arability index according
             to the classification of the corresponding cell into well or poorly suited for sweet potato cultivation,
-            f_pi_occ_gardens.
-            I.e. the agent's obtained farming produce is the sum of all occupied gardens weighted by their cell's
+            arability_cultivated_gardens.
+            I.e. the agent's obtained sweet potatoes is the sum of all cultivated gardens weighted by their cell's
             productivity indices.
-        - If more farming produce is required, the agent tries to occupy more (prefereably well-suited) gardens within
-            r_f
+        - If more sweet potatoes is required, the agent tries to cultivate more (preferably well-suited) gardens within
+            r_c
         - Such potential garden areas might, however, still be forested.
-            Then, agents use slash-and-burn to clear the space and occupy an area of 1000 m^2 in that cell.
+            Then, agents use slash-and-burn to clear the space and cultivate an area of 1000 m^2 in that cell.
             We assume that trees are evenly spread within a cell, the fraction of removed trees is equivalent to the
             fraction of cleared area in this cell.
-        - Some of that cleared space might already be occupied with existing gardens.
-        - Hence, to occupy a new garden in a cell, the agent needs to clear trees until enough space for an additional
-            garden is cleared
+        - Some of that cleared space might already be cultivated with existing gardens.
+        - Hence, to cultivate a new garden in a cell, the agent needs to clear trees until enough space for
+            an additional garden is cleared
             I.e.:
-            $$ A_{free}(c, t) - A_{occ}(c, t) >= A_{garden} = 1000 m^2 $$
-            with A_{free}(c, t) the cleared area and A_{occ}(c, t) the area occupied by already existing gardens in cell
-            c at time t
+            $$ A_{free}(c, t) - A_{cult}(c, t) >= A_{garden} = 1000 m^2 $$
+            with A_{free}(c, t) the cleared area and A_{cult}(c, t) the area cultivated by already existing gardens in
+            cell c at time t
         - In our model, agents choose new gardens in well-suited cells one-by-one, beginning with the cell in which the
             least amount of trees needs to be cleared to obtain the required free space
             (optimally, there is already cleared space and no trees need to be removed additionally).
         - The addition of a garden immediately increases the agent's sweet potato yield
-        - Only when there are no more unfarmed, well-suited areas in the agent's surrounding, they also consider poorly
-            suited cells (according to the same procedure).
-            This continues until the requirement is filled, or no unfarmed, arable spaces remain within r_f distance
+        - Only when there are no more uncultivated, well-suited areas in the agent's surrounding, they also consider
+            poorly suited cells (according to the same procedure).
+            This continues until the requirement is filled, or no uncultivated, arable spaces remain within r_c distance
                 of the agent.
 
         Steps
         =====
-        - Calculate farming_fill = fraction of required farming produce filled by current gardens and their specific
+        - Calculate cult_fill = fraction of required sweet potatoes filled by current gardens and their specific
         yields F_{PI}:
         - If more gardens required:
-            - determine neighbouring cells in r_f distance
+            - determine neighbouring cells in r_c distance
             - determine well-suited cells
             - do until satisfied or no well-suited, free gardens remain:
                     - determine the cells with free, well-suited gardens,
                     - determine the fraction of trees on the cell (assuming an initially uniform distribution of trees
                             within the cell)
-                    - determine the fraction of occupied gardens on the cell
+                    - determine the fraction of cultivated gardens on the cell
                     - determine how many trees need to be cleared to have free, cleared area sufficient for setting up
                             a further garden
                     - select cell with the least amount of trees needing to be cleared
                     - clear the necessary trees on that cell
-                    - occupy a garden on that cell and thereby increase the current farming produce, i.e. append
-                        f_pi_occ_gardens and occupied_gardens_inds_map
+                    - cultivate a garden on that cell and thereby increase the current sweet potatoes, i.e. append
+                        arability_cultivated_gardens and cultivated_gardens_inds_map
             - repeat last two steps for poorly suited cells
         """
-        self.farming_fill = (np.sum(self.f_pi_occ_gardens) / self.f_req).clip(max=1)
+        self.cult_fill = (np.sum(self.arability_cultivated_gardens) / self.c_req).clip(max=1)
 
-        if self.farming_fill < 1:
+        if self.cult_fill < 1:
             # cell indices that are in r_F distance:
-            circle_f_inds = np.where(self.m.map.circ_inds_farming[:, self.cell])[0]
+            circle_c_inds = np.where(self.m.map.circ_inds_cultivation[:, self.cell])[0]
             # first consider only well suited cells, then consider poorly suited cells.
             for gardens in [self.m.map.avail_well_gardens, self.m.map.avail_poor_gardens]:
                 while True:
-                    if self.farming_fill == 1:
+                    if self.cult_fill == 1:
                         break
-                    # Cells within circle_f_inds, that are arable and have not yet all of its gardens occupied.
-                    open_spaces = np.where((gardens[circle_f_inds] > 0) * (gardens[circle_f_inds] > self.m.map.occupied_gardens[circle_f_inds]))
+                    # Cells within circle_c_inds, that are arable and have not yet all of its gardens cultivated.
+                    open_spaces = np.where((gardens[circle_c_inds] > 0) * (
+                                gardens[circle_c_inds] > self.m.map.cultivated_gardens[circle_c_inds]))
 
                     # indices of the cells
-                    potential_cells = circle_f_inds[open_spaces]
+                    potential_cells = circle_c_inds[open_spaces]
                     if len(potential_cells) == 0:
-                        # no unoccupied gardens left in distance r_F around agent
+                        # no uncultivated gardens left in distance r_F around agent
                         break
 
-                    # Fraction of cell occupied by trees on each potential cell
+                    # Fraction of cell cultivated by trees on each potential cell
                     frac_cell_with_trees = self.m.map.trees_map[potential_cells] / (
-                    self.m.map.trees_cap[potential_cells]).clip(1e-5)
-                    # Fraction of cell that would be occupied by one garden
+                        self.m.map.trees_cap[potential_cells]).clip(1e-5)
+                    # Fraction of cell that would be cultivated by one garden
                     frac_cell_with_1garden = self.m.garden_area_m2 / self.m.map.triangle_area_m2
-                    # Fraction of cell that is currently occupied by gardens
-                    frac_cell_with_occ_gardens = frac_cell_with_1garden * self.m.map.occupied_gardens[potential_cells]
+                    # Fraction of cell that is currently cultivated by gardens
+                    frac_cell_with_cult_gardens = frac_cell_with_1garden * self.m.map.cultivated_gardens[
+                        potential_cells]
                     # Fraction of cell without gardens and without trees
-                    frac_cell_notree_nogarden = (1 - frac_cell_with_trees) - frac_cell_with_occ_gardens
+                    frac_cell_notree_nogarden = (1 - frac_cell_with_trees) - frac_cell_with_cult_gardens
 
-                    # Conditon: frac_cell_notree_nogarden >= frac_cell_with_1garden
-                    # $A_{\rm free}(c, t) - A_{\rm occ}(c, t) \geq A_{\rm garden}$
+                    # Condition: frac_cell_notree_nogarden >= frac_cell_with_1garden
+                    # $A_{\rm free}(c, t) - A_{\rm cult}(c, t) \geq A_{\rm garden}$
 
                     # need to clear trees:
-                    # $\Delta T =  T(c,0) \cdot (A_{garden} - (A_{free} - A_{occ}))/ A_{cell}$
+                    # $\Delta T =  T(c,0) * (A_{garden} - (A_{free} - A_{cult}))/ A_{cell}$
                     # if frac_cell_with_1garden - frac_cell_notree_nogarden <= 0: condition fulfilled: No need to clear
 
                     trees_to_clear = self.m.map.trees_cap[potential_cells] * (
@@ -618,12 +625,13 @@ class Agent:
                     self.m.map.trees_map[index_of_chosen_cell] -= trees_to_clear_in_cell
 
                     # Occupy garden in the cell.
-                    self.occupied_gardens_inds_map = np.append(self.occupied_gardens_inds_map,
-                                                               index_of_chosen_cell).astype(int)
-                    self.f_pi_occ_gardens = np.append(self.f_pi_occ_gardens, self.m.map.f_pi_c[index_of_chosen_cell])
-                    self.m.map.occupied_gardens[index_of_chosen_cell] += 1
+                    self.cultivated_gardens_inds_map = np.append(self.cultivated_gardens_inds_map,
+                                                                 index_of_chosen_cell).astype(int)
+                    self.arability_cultivated_gardens = np.append(self.arability_cultivated_gardens,
+                                                                  self.m.map.arability_c[index_of_chosen_cell])
+                    self.m.map.cultivated_gardens[index_of_chosen_cell] += 1
 
-                    self.farming_fill = (np.sum(self.f_pi_occ_gardens) / self.f_req).clip(max=1)
+                    self.cult_fill = (np.sum(self.arability_cultivated_gardens) / self.c_req).clip(max=1)
         return
 
     def tree_harvest(self):
@@ -632,7 +640,8 @@ class Agent:
 
         Idea
         ====
-        Individuals of the agent need a constant provision of trees (and their derivate products) in each year.
+        Individuals of the agent need a constant provision of trees (and their other products derived from trees)
+        in each year.
 
         Steps
         =====
@@ -680,9 +689,9 @@ class Agent:
         update agent in each time step: harvest, change population (potentially splitting or removing the agent),
         potentially move the settlement, adapt tree preference
 
-        Specfic steps of the yearly update:
-            - Determine resource requirements (trees and farming)
-            - Try occupying more gardens until satisfied
+        Specific steps of the yearly update:
+            - Determine resource requirements (trees and cultivation)
+            - Try cultivating more gardens until satisfied
             - Try cutting trees until satisfied
             - Determine new satisfaction index
             - population growth, split or remove
@@ -690,11 +699,11 @@ class Agent:
             - update tree preference
         """
 
-        # === Determine Resource requirements (trees and farming) ===
+        # === Determine Resource requirements (trees and cultivation) ===
         self.calc_resource_req()
 
-        # === Try occupying more gardens until satisfied ==
-        self.occupy_gardens()
+        # === Try cultivating more gardens until satisfied ==
+        self.cultivate_gardens()
 
         # === Tree Harvest ===
 
@@ -702,10 +711,10 @@ class Agent:
 
         # === Population Change ===
 
-        self.past_satisfaction = copy(self.satisfaction)
-        self.satisfaction = np.min([self.tree_fill, self.farming_fill])
+        self.past_success = copy(self.success)
+        self.success = np.min([self.tree_fill, self.cult_fill])
 
-        past_dependent_satisfaction = 0.5 * (self.past_satisfaction + self.satisfaction)
+        self.satisfaction = 0.5 * (self.past_success + self.success)
         self.population_change()
 
         # Strategy: First split if household becomes too big, then move if unhappy:
@@ -725,7 +734,7 @@ class Agent:
         # === Move ===
         if survived:
             self.calc_resource_req()
-            if past_dependent_satisfaction < self.m.s_equ and self.satisfaction < self.m.s_equ:
+            if self.satisfaction < self.m.s_equ and self.success < self.m.s_equ:
                 self.move(np.arange(len(self.m.map.inds_map)))
                 self.m.resource_motivated_moves += 1
             else:
@@ -737,6 +746,3 @@ class Agent:
             self.calc_resource_req()
 
         return
-
-
-
