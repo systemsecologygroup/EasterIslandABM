@@ -127,7 +127,7 @@ The code was tested with the following python packages:
 
 ## References and Further Reading
 <a id="0">[0]</a>
-Steiglechner P, Merico A (2021): Easter Island spatial population patterns in an Agent-Based Model of human-resource interaction (working title). Manuscript submitted for publication.
+Steiglechner P, Merico A (2021): Spatio-temporal patterns of deforestation, settlement and land use on Easter Island prior to European arrivals. Manuscript submitted for publication.
 
 <a id="1">[1]</a>
 Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th edn. Rowman & Littlefield, Maryland, USA
