@@ -1,7 +1,7 @@
 # Easter Island ABM
 An Agent-Based Model that simulates the spatial and temporal dynamics of household agents on Easter Island and their interactions with a spatially explicit and realistic natural environment prior to European arrival.
 
-Associated publication: [[Steiglechner and Merico (2021)]](#0) (submitted)
+Associated publication: [[Steiglechner and Merico (2022)]](#0)
 
 <p align="center">
   <img src="readme_pics/create_rull_comp_latex.png" width="600">
@@ -127,7 +127,7 @@ The code was tested with the following python packages:
 
 ## References and Further Reading
 <a id="0">[0]</a>
-Steiglechner P, Merico A (2021): Spatio-temporal patterns of deforestation, settlement and land use on Easter Island prior to European arrivals. Manuscript submitted for publication.
+Steiglechner, P., Merico, A. (2022). Spatio-Temporal Patterns of Deforestation, Settlement, and Land Use on Easter Island Prior to European Arrivals. In: Rull, V., Stevenson, C. (eds) The Prehistory of Rapa Nui (Easter Island). Developments in Paleoenvironmental Research, vol 22. Springer, Cham. https://doi.org/10.1007/978-3-030-91127-0_16
 
 <a id="1">[1]</a>
 Bahn P, Flenley J (2017) Easter Island, Earth Island: The enigmas of Rapa Nui, 4th edn. Rowman & Littlefield, Maryland, USA
